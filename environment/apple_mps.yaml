@@ -1,0 +1,21 @@
+# create environment by: conda env create -f env/apple_mps.yaml
+# update environment by: conda env update -f env/apple_mps.yaml
+name: yolov8-mps
+channels:
+  - conda-forge
+  - defaults
+  - pytorch
+dependencies:
+  - python=3.10
+  - jupyter
+  - scikit-learn
+  - pytorch::pytorch
+  - torchvision
+  - ultralytics
+  - loguru
+  - tensorboard
+  - pyarrow
+  - pip
+  - pip:
+      - "labelbox[data]"
+      - lapx # linear assignment for tracking
