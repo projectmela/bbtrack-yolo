@@ -1,6 +1,8 @@
 import argparse
+import os
 from pathlib import Path
 
+import comet_ml
 import torch
 import yaml
 from ultralytics import YOLO
@@ -8,13 +10,21 @@ from ultralytics import settings
 
 from utility import cur_dt_str
 
+comet_ml.init(
+    api_key=os.getenv("COMET_API_KEY"),
+    project_name=os.getenv("COMET_PROJECT_NAME"),
+    workspace=os.getenv("COMET_WORKSPACE"),
+)
+
 parser = argparse.ArgumentParser()
+parser.add_argument('-m', '--model', type=str, default='yolov8l.pt', help='Model.pt path(s) or pretrained model name')
 parser.add_argument('-d', '--dataset', type=str, default='dataset/bb_2022/bb_2022.yaml', help='dataset.yaml path')
 parser.add_argument('--image_size', type=int, default=5472,
                     help='image size, default to original size in blackbuck dataset, 5472')
-parser.add_argument('--batch_size', type=int, default=1, help='batch size, default to auto (-1)')
-parser.add_argument('-e', '--epochs', type=int, default=1000, help='number of epochs, default to 10')
+parser.add_argument('--batch_size', type=int, default=-1, help='batch size, default to auto (-1)')
+parser.add_argument('-e', '--epochs', type=int, default=50000, help='number of epochs, default to 10')
 parser.add_argument('--workers', type=int, default=8, help='number of workers for dataloader, default to 8')
+parser.add_argument('--patience', type=int, default=100, help='early stopping patience, default to 100')
 
 args = parser.parse_args()
 dataset_file = args.dataset
@@ -22,7 +32,10 @@ image_size = args.image_size
 batch_size = args.batch_size
 epochs = args.epochs
 workers = args.workers
+model = args.model
+patience = args.patience
 
+# TODO: check if this is necessary
 settings.update({
     'runs_dir': './runs',
     'weights_dir': './models',
@@ -39,7 +52,7 @@ dataset_cfg['path'] = Path(dataset_file).parent.absolute().as_posix()
 yaml.dump(dataset_cfg, open(dataset_file, 'w'))
 
 # load a model
-model = YOLO('yolov8l.pt')
+model = YOLO(model)
 
 model_train_param_str = f"imgsz={image_size}_bs={batch_size}_e={epochs}"
 model_name = f"d={Path(dataset_file).stem}_{model_train_param_str}_{cur_dt_str()}"
@@ -50,10 +63,10 @@ model.train(
     optimizer='auto',
     device=device,
     epochs=epochs,
-    patience=int(0.2 * epochs),  # early stopping patience
-    batch=batch_size,  # auto-batch size
+    patience=patience,  # early stopping patience
+    batch=batch_size,
     workers=8,  # number of workers threads for dataloader
-    save_period=int(0.05 * epochs),  # save model snapshots every 5% of epochs
+    save_period=int(0.1 * epochs),  # save model snapshots every 10% of epochs
     seed=0,
     deterministic=True,  # reproducible
     imgsz=image_size,
