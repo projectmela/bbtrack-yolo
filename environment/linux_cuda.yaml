@@ -6,6 +6,7 @@ channels:
   - defaults
   - nvidia
   - pytorch
+  - comet_ml
 dependencies:
   - python=3.10
   - jupyter
@@ -15,6 +16,7 @@ dependencies:
   - torchvision
   - ultralytics
   - tensorboard
+  - comet_ml
   - pyarrow
   - loguru
   - pip

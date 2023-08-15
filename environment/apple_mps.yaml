@@ -5,6 +5,7 @@ channels:
   - conda-forge
   - defaults
   - pytorch
+  - comet_ml
 dependencies:
   - python=3.10
   - jupyter
@@ -14,6 +15,7 @@ dependencies:
   - ultralytics
   - loguru
   - tensorboard
+  - comet_ml
   - pyarrow
   - pip
   - pip:
