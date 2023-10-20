@@ -2,8 +2,10 @@
 import argparse
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import torch
+from loguru import logger
 from ultralytics import YOLO
 
 from utility import cur_dt_str
@@ -31,8 +33,6 @@ model = YOLO(model_file)
 model_name = Path(model_file).parent.parent.name
 source_name = Path(source).stem
 dest_name = f'{model_name}_{source_name}_{cur_dt_str()}'
-dest = Path(args.save_dir) / dest_name
-dest.mkdir(parents=True, exist_ok=True)
 
 device = 'mps' if torch.backends.mps.is_available() else '0'  # choose mps if available
 # inference on source
@@ -45,12 +45,12 @@ results = model.track(
     line_width=3,
     project=save_dir,
     name=dest_name,
-    # tracker="bytetrack.yaml",
-    tracker="botsort.yaml",
+    tracker="bytetrack.yaml",
+    # tracker="botsort.yaml",
     conf=0.3,
     iou=0.5,
 )  # in stream mode, return a generator
-results = list(results)  # convert to list, trigger to run inference
+# results = list(results)  # convert to list, trigger to run inference
 
 # collect results into human readable dataframes
 result_dfs = []
@@ -66,14 +66,17 @@ for result in results:
     else:  # different image from same video, increment id
         frame_id += 1
 
-    boxes = result.boxes.xywh.to('cpu').numpy()
-    conf = result.boxes.conf.to('cpu').numpy()
-    classes = result.boxes.cls.to('cpu').numpy()
-    ids = results[0].boxes.id.to('cpu').numpy()
-    # convert to dataframe: file_path, x, y, w, h, conf, cls
+    result_np = result.numpy()
+    boxes = result_np.boxes.xywh
+    conf = result_np.boxes.conf
+    classes = result_np.boxes.cls
+    ids = result_np.boxes.id
+    frames = np.full_like(ids, frame_id)
+
+    # convert to dataframe: file_path, frame, x, y, w, h, conf, cls
     result_df = pd.DataFrame({
         'file_path': Path(source).absolute().as_posix(),
-        'frame': frame_id,
+        'frame': frames,
         'obj_id': ids,
         'x': boxes[:, 0],
         'y': boxes[:, 1],
@@ -84,6 +87,33 @@ for result in results:
     })
     result_dfs.append(result_df)
 
+dest = Path(args.save_dir) / dest_name
+dest.mkdir(parents=True, exist_ok=True)
 results_df = pd.concat(result_dfs)
 results_df.to_parquet(dest / 'tracking.parquet')
 results_df.to_csv(dest / 'tracking.csv')
+
+# convert to mot17 format: <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
+#TODO: refactor the following conversion, more readable
+mot_df = (
+    results_df
+    .copy()
+    .loc[:, ['frame', 'obj_id', 'x', 'y', 'w', 'h', 'conf']]
+    .rename(columns={'obj_id': 'id',
+                     'x': 'bb_left',
+                     'y': 'bb_top',
+                     'w': 'bb_width',
+                     'h': 'bb_height'})
+    .sort_values(['frame', 'id'])
+)
+mot_df['bb_left'] = mot_df['bb_left'] - mot_df['bb_width'] / 2
+mot_df['bb_top'] = mot_df['bb_top'] - mot_df['bb_height'] / 2
+# add dummy values for x, y, z
+mot_df.loc[:, ['x', 'y', 'z']] = -1
+# update data type
+mot_df.loc[:, ['frame', 'id']] = mot_df.loc[:, ['frame', 'id']].astype(int)
+# update frame id to start from 1
+mot_df.loc[:, 'frame'] = mot_df.loc[:, 'frame'] + 1
+
+mot_df.to_parquet(dest / 'tracking_mot.parquet')
+mot_df.to_csv(dest / 'tracking_mot.txt', index=False, header=False)
