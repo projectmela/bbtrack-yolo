@@ -1,5 +1,6 @@
 # create environment by: conda env create -f env/apple_mps.yaml
 # update environment by: conda env update -f env/apple_mps.yaml
+# takes a long time to solve the environment
 name: yolov8-mps
 channels:
   - conda-forge
@@ -20,4 +21,5 @@ dependencies:
   - pip
   - pip:
       - "labelbox[data]"
-      - lapx # linear assignment for tracking
+      # linear assignment for tracking
+      - lapx
