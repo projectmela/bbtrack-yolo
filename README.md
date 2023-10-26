@@ -16,7 +16,7 @@ Using YOLOv8 to detect and track blackbucks in videos.
 ## Set up local environment
 
 ```bash
-# for apple silicon
+# for macOS with apple silicon
 conda env create -f env/apple_mps.yaml
 # for x86 linux with nvidia gpu
 conda env create -f env/linux_cuda.yaml
@@ -33,12 +33,9 @@ python3 yolov8_train.py \
 python3 yolov8_train.py --help
 ``` 
 
-## Predict
+## Predict (Detection and Tracking)
 
 ```bash
-python yolov8_predict.py \
-  --weights path/to/weights.pt \
-  --source path/to/video/or/image
-  # or
-  --source path/to/folder/of/videos/or/images
+# see script argument detail
+python3 yolov8_detect_and_track.py -h
 ```
