@@ -47,7 +47,7 @@ results = model.track(
     name=dest_name,
     tracker="bytetrack.yaml",
     # tracker="botsort.yaml",
-    conf=0.3,
+    conf=0.1,
     iou=0.5,
 )  # in stream mode, return a generator
 # results = list(results)  # convert to list, trigger to run inference
