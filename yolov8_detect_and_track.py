@@ -5,7 +5,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from loguru import logger
 from ultralytics import YOLO
 
 from utility import cur_dt_str
@@ -40,7 +39,7 @@ results = model.track(
     source,
     stream=True,  # avoid memory overflow
     device=device,
-    save=plot, # save plotted results to save_dir
+    save=plot,  # save plotted results to save_dir
     show_labels=True,
     line_width=3,
     project=save_dir,
@@ -90,11 +89,14 @@ for result in results:
 dest = Path(args.save_dir) / dest_name
 dest.mkdir(parents=True, exist_ok=True)
 results_df = pd.concat(result_dfs)
-results_df.to_parquet(dest / 'tracking.parquet')
+try:
+    results_df.to_parquet(dest / 'tracking.parquet')
+except ImportError as e:
+    print(f"'pyarrow' or 'fastparquet' not found, only saving to csv instead. See error:{e}")
 results_df.to_csv(dest / 'tracking.csv')
 
 # convert to mot17 format: <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
-#TODO: refactor the following conversion, more readable
+# TODO: refactor the following conversion, more readable
 mot_df = (
     results_df
     .copy()
@@ -114,6 +116,5 @@ mot_df.loc[:, ['x', 'y', 'z']] = -1
 mot_df.loc[:, ['frame', 'id']] = mot_df.loc[:, ['frame', 'id']].astype(int)
 # update frame id to start from 1
 mot_df.loc[:, 'frame'] = mot_df.loc[:, 'frame'] + 1
-
-mot_df.to_parquet(dest / 'tracking_mot.parquet')
+# save to disk
 mot_df.to_csv(dest / 'tracking_mot.txt', index=False, header=False)
