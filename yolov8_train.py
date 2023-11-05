@@ -5,12 +5,13 @@ from pathlib import Path
 import comet_ml
 import torch
 import yaml
+from comet_ml import Experiment
 from ultralytics import YOLO
 from ultralytics import settings
 
 from utility import cur_dt_str
 
-comet_ml.init(
+experiment = Experiment(
     api_key=os.getenv("COMET_API_KEY"),
     project_name=os.getenv("COMET_PROJECT_NAME"),
     workspace=os.getenv("COMET_WORKSPACE"),
@@ -22,7 +23,7 @@ parser.add_argument('-d', '--dataset', type=str, default='dataset/bb_2022/bb_202
 parser.add_argument('--image_size', type=int, default=5472,
                     help='image size, default to original size in blackbuck dataset, 5472')
 parser.add_argument('--batch_size', type=int, default=-1, help='batch size, default to auto (-1)')
-parser.add_argument('-e', '--epochs', type=int, default=50000, help='number of epochs, default to 10')
+parser.add_argument('-e', '--epochs', type=int, default=10, help='number of epochs, default to 10')
 parser.add_argument('--workers', type=int, default=8, help='number of workers for dataloader, default to 8')
 parser.add_argument('--patience', type=int, default=100, help='early stopping patience, default to 100')
 
@@ -54,8 +55,9 @@ yaml.dump(dataset_cfg, open(dataset_file, 'w'))
 # load a model
 model = YOLO(model)
 
-model_train_param_str = f"imgsz={image_size}_bs={batch_size}_e={epochs}"
+model_train_param_str = f"m={Path(args.model).stem}_imgsz={image_size}_bs={batch_size}"
 model_name = f"d={Path(dataset_file).stem}_{model_train_param_str}_{cur_dt_str()}"
+experiment.set_name(model_name)
 
 # train the model
 model.train(
