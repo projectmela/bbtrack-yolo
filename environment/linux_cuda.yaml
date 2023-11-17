@@ -12,8 +12,8 @@ dependencies:
   - jupyter
   - scikit-learn
   - pytorch-cuda=11.8
-  - pytorch
-  - torchvision
+  - pytorch=2.0
+  - torchvision=0.15
   - ultralytics
   - tensorboard
   - comet_ml
