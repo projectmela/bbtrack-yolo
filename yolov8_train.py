@@ -9,7 +9,7 @@ from comet_ml import Experiment
 from ultralytics import YOLO
 from ultralytics import settings
 
-from utility import cur_dt_str
+from utility import cur_dt_str, args_in_lines
 
 experiment = Experiment(
     api_key=os.getenv("COMET_API_KEY"),
@@ -28,6 +28,7 @@ parser.add_argument('--workers', type=int, default=8, help='number of workers fo
 parser.add_argument('--patience', type=int, default=100, help='early stopping patience, default to 100')
 
 args = parser.parse_args()
+print(args_in_lines(args))
 dataset_file = args.dataset
 image_size = args.image_size
 batch_size = args.batch_size
