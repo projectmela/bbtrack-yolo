@@ -11,8 +11,8 @@ from ultralytics import YOLO
 from utility import cur_dt_str
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-m', '--model', type=str, default='models/bb_2022/bb_2022.pt', help='model.pt path(s)')
-parser.add_argument('-s', '--source', type=str, default='dataset/bb_2022/bb_2022.yaml', help='source to predict')
+parser.add_argument('-m', '--model', type=str, required=True, help='model.pt path')
+parser.add_argument('-s', '--source', type=str, required=True, help='source to predict')
 parser.add_argument('--batch_size', type=int, default=1, help='batch size, default to 1')
 parser.add_argument('--workers', type=int, default=8, help='number of workers for dataloader, default to 8')
 parser.add_argument('--save_dir', type=str, default='predictions', help='save directory, default to "predictions"')
@@ -40,7 +40,7 @@ results = model.track(
     source,
     stream=True,  # avoid memory overflow
     device=device,
-    save=plot, # save plotted results to save_dir
+    save=plot,  # save plotted results to save_dir
     show_labels=True,
     line_width=3,
     project=save_dir,
@@ -77,43 +77,45 @@ for result in results:
     result_df = pd.DataFrame({
         'file_path': Path(source).absolute().as_posix(),
         'frame': frames,
-        'obj_id': ids,
-        'x': boxes[:, 0],
-        'y': boxes[:, 1],
-        'w': boxes[:, 2],
-        'h': boxes[:, 3],
+        'id': ids,
+        'bb_left': boxes[:, 0] - boxes[:, 2] / 2,
+        'bb_top': boxes[:, 1] - boxes[:, 3] / 2,
+        'bb_width': boxes[:, 2],
+        'bb_height': boxes[:, 3],
         'conf': conf,
-        'cls': classes
+        'cls': classes,
     })
     result_dfs.append(result_df)
 
+results_df = pd.concat(result_dfs)
+if model.names is not None:
+    results_df.loc[:, 'cls_name'] = results_df.loc[:, 'cls'].apply(lambda x: model.names[x])
+else:
+    print('No class names found, using class id as class name')
+    results_df.loc[:, 'cls_name'] = results_df.loc[:, 'cls'].astype(str)
+
+# save results
 dest = Path(args.save_dir) / dest_name
 dest.mkdir(parents=True, exist_ok=True)
-results_df = pd.concat(result_dfs)
+print(f'Saving results to {dest.absolute().as_posix()}')
 results_df.to_parquet(dest / 'tracking.parquet')
 results_df.to_csv(dest / 'tracking.csv')
 
-# convert to mot17 format: <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
-#TODO: refactor the following conversion, more readable
-mot_df = (
-    results_df
-    .copy()
-    .loc[:, ['frame', 'obj_id', 'x', 'y', 'w', 'h', 'conf']]
-    .rename(columns={'obj_id': 'id',
-                     'x': 'bb_left',
-                     'y': 'bb_top',
-                     'w': 'bb_width',
-                     'h': 'bb_height'})
-    .sort_values(['frame', 'id'])
-)
-mot_df['bb_left'] = mot_df['bb_left'] - mot_df['bb_width'] / 2
-mot_df['bb_top'] = mot_df['bb_top'] - mot_df['bb_height'] / 2
-# add dummy values for x, y, z
-mot_df.loc[:, ['x', 'y', 'z']] = -1
-# update data type
-mot_df.loc[:, ['frame', 'id']] = mot_df.loc[:, ['frame', 'id']].astype(int)
-# update frame id to start from 1
-mot_df.loc[:, 'frame'] = mot_df.loc[:, 'frame'] + 1
+# only keep bb class and convert to mot17 format:
+# <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
+results_df.loc[:, ['x', 'y', 'z']] = -1 # add dummy values for x, y, z
+results_df.loc[:, ['frame', 'id']] = results_df.loc[:, ['frame', 'id']].astype(int) # update data type
 
-mot_df.to_parquet(dest / 'tracking_mot.parquet')
-mot_df.to_csv(dest / 'tracking_mot.txt', index=False, header=False)
+# remove ids that never classified as blackbuck
+bb_cls_name = ['bb', 'bbfemale', 'bbmale']
+ever_as_bb = results_df.groupby("id").apply(lambda x: any(x["cls_name"].isin(bb_cls_name)))
+results_df = results_df[results_df["id"].isin(ever_as_bb[ever_as_bb].index)]
+
+# update frame id to start from 1
+results_df.loc[:, 'frame'] = results_df.loc[:, 'frame'] + 1
+(
+    results_df
+    # keep only mot columns
+    .loc[:, ['frame', 'id', 'bb_left', 'bb_top', 'bb_width', 'bb_height', 'conf', 'x', 'y', 'z']]
+    .to_csv(dest / 'tracking_blackbuck_mot.txt', index=False, header=False)
+)
