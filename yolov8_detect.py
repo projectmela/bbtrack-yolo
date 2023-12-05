@@ -104,19 +104,19 @@ finally:
     except ImportError as e:
         print(f"'pyarrow' or 'fastparquet' not found, only saving to csv instead. See error: {e}")
 
-    # only keep bb class and convert to mot17 format:
-    # <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
-    result_df.loc[:, ['x', 'y', 'z']] = -1  # add dummy values for x, y, z
-    result_df.loc[:, ['frame', 'id']] = result_df.loc[:, ['frame', 'id']].astype(int)  # update data type
-
-    # remove ids that never classified as blackbuck
+    logger.info("Saving blackbuck dets results to mot format ...")
+    # only keep bb class, remove objects that never classified as blackbuck
     bb_cls_name = ['bb', 'bbfemale', 'bbmale']
     ever_as_bb = result_df.groupby("id").apply(lambda x: any(x["cls_name"].isin(bb_cls_name)))
-    result_df = result_df[result_df["id"].isin(ever_as_bb[ever_as_bb].index)]
-    logger.info("Saving blackbuck dets results to mot format ...")
-    (
-        result_df
-        # keep only mot columns
-        .loc[:, ['frame', 'id', 'bb_left', 'bb_top', 'bb_width', 'bb_height', 'conf', 'x', 'y', 'z']]
-        .to_csv(dest / 'dets_blackbuck_mot.txt', index=False, header=False)
-    )
+    bb_mot_df = result_df[result_df["id"].isin(ever_as_bb[ever_as_bb].index)].copy()
+
+    if bb_mot_df.empty:
+        logger.warning(f"No blackbuck detected in {source}.\nClasses detected: {result_df['cls_name'].unique()}")
+        exit(0)
+
+    # convert to mot17 format:
+    # <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
+    bb_mot_df.loc[:, ['x', 'y', 'z']] = -1  # add dummy values for x, y, z
+    bb_mot_df.loc[:, ['frame', 'id']] = bb_mot_df.loc[:, ['frame', 'id']].astype(int)  # update data type
+    bb_mot_df = bb_mot_df.loc[:, ['frame', 'id', 'bb_left', 'bb_top', 'bb_width', 'bb_height', 'conf', 'x', 'y', 'z']]
+    bb_mot_df.to_csv(dest / 'dets_blackbuck_mot.txt', index=False, header=False)
