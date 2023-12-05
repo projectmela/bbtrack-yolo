@@ -17,6 +17,7 @@ parser.add_argument('--batch_size', type=int, default=1, help='batch size, defau
 parser.add_argument('--workers', type=int, default=8, help='number of workers for dataloader, default to 8')
 parser.add_argument('--save_dir', type=str, default='predictions', help='save directory, default to "predictions"')
 parser.add_argument('--plot', action='store_true', help='save plotted results to save_dir')
+parser.add_argument('--pred_th', type=float, default=0.0, help='prediction threshold, default to 0.0')
 
 args = parser.parse_args()
 model_file = args.model
@@ -25,6 +26,7 @@ batch_size = args.batch_size
 workers = args.workers
 save_dir = args.save_dir
 plot = args.plot
+pred_th = args.pred_th
 
 assert Path(model_file).exists(), f'Model {model_file} does not exist'
 model = YOLO(model_file)
@@ -44,7 +46,7 @@ results = model.predict(
     # inference parameters
     stream=True,  # avoid memory overflow
     device=device,
-    conf=0.0,
+    conf=pred_th,
     max_det=500,
     # visualization parameters
     save=plot,  # save plotted results to save_dir
