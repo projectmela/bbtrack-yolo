@@ -58,7 +58,7 @@ results = model.predict(
 # open csv file
 dest = Path(args.save_dir) / dest_name
 dest.mkdir(parents=True, exist_ok=True)
-csv_path = dest / 'dets.csv'
+csv_path = dest / 'yolov8_dets.csv'
 csv_file = open(csv_path, 'w')
 # write csv header
 csv_file.write("file_path,frame,id,"
@@ -100,23 +100,26 @@ finally:
     logger.info(f'Converting results to csv ...')
     result_df = pd.read_csv(csv_path)
     try:
-        result_df.to_parquet(dest / 'dets.parquet')
+        result_df.to_parquet(dest / 'yolov8_dets.parquet')
     except ImportError as e:
         print(f"'pyarrow' or 'fastparquet' not found, only saving to csv instead. See error: {e}")
 
     logger.info("Saving blackbuck dets results to mot format ...")
-    # only keep bb class, remove objects that never classified as blackbuck
-    bb_cls_name = ['bb', 'bbfemale', 'bbmale']
-    ever_as_bb = result_df.groupby("id").apply(lambda x: any(x["cls_name"].isin(bb_cls_name)))
-    bb_mot_df = result_df[result_df["id"].isin(ever_as_bb[ever_as_bb].index)].copy()
-
-    if bb_mot_df.empty:
-        logger.warning(f"No blackbuck detected in {source}.\nClasses detected: {result_df['cls_name'].unique()}")
-        exit(0)
 
     # convert to mot17 format:
     # <frame>, <id>, <bb_left>, <bb_top>, <bb_width>, <bb_height>, <conf>, <x>, <y>, <z>
-    bb_mot_df.loc[:, ['x', 'y', 'z']] = -1  # add dummy values for x, y, z
-    bb_mot_df.loc[:, ['frame', 'id']] = bb_mot_df.loc[:, ['frame', 'id']].astype(int)  # update data type
-    bb_mot_df = bb_mot_df.loc[:, ['frame', 'id', 'bb_left', 'bb_top', 'bb_width', 'bb_height', 'conf', 'x', 'y', 'z']]
-    bb_mot_df.to_csv(dest / 'dets_blackbuck_mot.txt', index=False, header=False)
+    result_df.loc[:, ['x', 'y', 'z']] = -1  # add dummy values for x, y, z
+    # save all classes
+    (result_df
+     .loc[:, ['frame', 'id', 'bb_left', 'bb_top', 'bb_width', 'bb_height', 'conf', 'x', 'y', 'z']]
+     .to_csv(dest / 'yolov8_dets_mot.txt', index=False, header=False))
+    # save only blackbuck classes
+    bb_cls_name = ['bb', 'bbfemale', 'bbmale']
+    bb_df = result_df[result_df["cls_name"].isin(bb_cls_name)]
+    if bb_df.empty:
+        logger.warning(f"No blackbuck ({bb_cls_name}) detected in {source}.\n"
+                       f"Classes detected: {result_df['cls_name'].unique()}")
+    else:
+        (bb_df
+         .loc[:, ['frame', 'id', 'bb_left', 'bb_top', 'bb_width', 'bb_height', 'conf', 'x', 'y', 'z']]
+         .to_csv(dest / 'yolov8_dets_bb_mot.txt', index=False, header=False))
