@@ -295,3 +295,8 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+yolov8x.pt
+yolov8l.pt
+yolov8m.pt
+yolov8s.pt
+yolov8n.pt
