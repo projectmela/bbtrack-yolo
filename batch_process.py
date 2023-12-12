@@ -3,6 +3,7 @@ import argparse
 import os
 import glob
 from detection_tracking import detect_and_track
+from detection_tracking import YoloTracker
 
 def argument_parser ():
     parser = argparse.ArgumentParser()
@@ -38,17 +39,20 @@ def glob_files(path, file_format = "*.MP4"):
 
     return files
 
-
-
+def print_arguments(args):
+    print("Input arguments:")
+    for arg, value in vars(args).items():
+        print(f"{arg}: {value}")
 
 def main():
     parser = argparse.ArgumentParser(description="Print an argument")
     args = argument_parser(parser)
 
+    print_arguments(args)
+
     dir_path = args.source
     if os.path.exists(dir_path):
         files = glob_files(dir_path)
-
     else:
         print("Provided path does not exist")
         exit()
@@ -56,8 +60,12 @@ def main():
     # Changing the input datatype to run the required affair
     for file in files: 
         args.source = file
+        print(f"Source file :{args.source} ")
+        # Type 1 : 
         detect_and_track(args)
-
+        # Type 2 : 
+        tracker = YoloTracker(args)
+        tracker.run()
 
 if __name__ == "__main__":
     main()
