@@ -1,6 +1,7 @@
 import json
 
 from ultralytics import YOLO
+
 from utility import cur_dt_str
 
 model_paths = [
@@ -29,21 +30,41 @@ model_paths = [
     "/scratch/cs/css-llm/jonathan/localcode/bb-yolo/models/models_202311122_gd/d=gd_dtc2023_m=yolov8x_imgsz=5472_bs=1_20231122-024757/weights/best.pt",
 ]
 
+model_paths += [model_path.replace('best.pt', 'last.pt') for model_path in model_paths]
+print(f"{model_paths=}")
 eval_results = []
+eval_dt = cur_dt_str()
 for model_path in model_paths:
     model = YOLO(model_path)
     print(f"{model.names=}")
-    # ultralytics.utils.metrics.Metric
-    metrics = model.val()  # need to specify data=path_to.yaml
+
+    # set batch size
+    if 'imgsz=5472' in model_path:
+        batch_size = 1
+    elif 'imgsz=2560' in model_path:
+        batch_size = 4
+    elif 'imgsz=1280' in model_path:
+        batch_size = 16
+    else:
+        raise ValueError(f"Unknown imgsz in {model_path=}")
+
+    metrics = model.val(
+        # data=, # need to specify dataset.yaml if not in default location
+        batch=1,
+    )  # returns: ultralytics.utils.metrics.Metric
     print(f"{metrics.box.maps=}")  # a list contains map50-95 of each category
-    cls_map = metrics.box.maps
-    model_eval_results = {'model_path': model_path}
-    model_eval_results |= [
-        [model.names[cls], map] for cls, map in zip(model.names, cls_map)
-    ]
+    cls_map50_95 = metrics.box.maps
+    cls_ap50 = metrics.box.ap50
+    model_eval_results = {'model_path': model_path, 'datetime': cur_dt_str()}
+    model_eval_results |= {
+        f"{model.names[cls]}_map": map for cls, map in zip(model.names, cls_map50_95)
+    }
+    model_eval_results |= {
+        f"{model.names[cls]}_ap50": ap50 for cls, ap50 in zip(model.names, cls_ap50)
+    }
     print(f"{model_eval_results=}")
     eval_results.append(model_eval_results)
 
     # dump as json
-    with open(f'eval_results_{cur_dt_str()}.json', 'w') as f:
+    with open(f'eval_results_{eval_dt}.json', 'w') as f:
         json.dump(eval_results, f)
