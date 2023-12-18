@@ -40,25 +40,11 @@ base_model = args.model
 patience = args.patience
 ontology = args.ontology
 
-# class indices in mc_dtc2023
-# 0: drone
-# 1: bird
-# 2: unknown
-# 3: shadow
-# 4: bbfemale
-# 5: bbmale
-ontology_to_cls_indices = {
-    'all_mc': [0, 1, 2, 3, 4, 5],  # "all_mc" # all classes ['bbfemale', 'bbmale', 'drone', 'unknown', 'shadow', 'bird']
-    'rm_unknown': [0, 1, 3, 4, 5],  # "rm_unknown" # Remove unknown ['bbfemale', 'bbmale', 'drone', 'shadow', 'bird']
-    'gd_shadow': [3, 4, 5],  # "gd_shadow" # keep only gender and shadow ['bbfemale', 'bbmale', 'shadow']
-    'gd': [4, 5],  # "gd" # keep gender ['bbfemale', 'bbmale']
-    'gd_drone_bird': [0, 1, 4, 5]
-    # "gd_drone_bird" # keep only gender, drone, birds ['bbfemale', 'bbmale', 'drone', 'bird']
-}
-cls_indices = ontology_to_cls_indices.get(ontology)
-if cls_indices is None:
-    raise ValueError(f"Unknown ontology: {ontology}")
-print(f"{cls_indices=}")
+if ontology:
+    dataset_name = Path(dataset_file).stem
+    dataset_file = dataset_file.replace(dataset_name, f'{dataset_name}_{ontology}')
+    print(f"Ontology specified: {dataset_file=}")
+    assert Path(dataset_file).exists(), f"{dataset_file} does not exist!"
 
 # TODO: check if this is necessary
 settings.update({
@@ -91,7 +77,6 @@ model.train(
     epochs=epochs,
     patience=patience,  # early stopping patience
     batch=batch_size,
-    classes=cls_indices,  # specify classes to train
     workers=8,  # number of workers threads for dataloader
     save_period=int(0.1 * epochs),  # save model snapshots every 10% of epochs
     seed=0,
@@ -123,8 +108,7 @@ model_eval_results = {
     'model_name': model_name,
     'datetime': cur_dt_str(),
     'ontology': ontology,
-    'cls_indices': ','.join([str(idx) for idx in cls_indices]),
-    'cls_names': ','.join([model.names[idx] for idx in cls_indices]),
+    'cls_names': ','.join(model.names.values()),
     'model': base_model,
     'dataset': dataset_file,
     'image_size': image_size,
@@ -141,3 +125,5 @@ print(f"{model_eval_results=}")
 # dump as json
 with open(f'models/{model_name}/processed_eval.json', 'w') as f:
     json.dump(model_eval_results, f)
+
+print("Done!")
