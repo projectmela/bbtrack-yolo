@@ -48,7 +48,8 @@ print(args_in_lines(args))
 dataset_file = args.dataset
 image_size = args.image_size
 batch_size = args.batch_size
-epochs = args.epochsworkers = args.workers
+epochs = args.epochs
+workers = args.workers
 base_model = args.model
 patience = args.patience
 ontology = args.ontology
@@ -88,7 +89,8 @@ model.train(
     data=dataset_file,
     optimizer='auto',
     device=device,
-    epochs=epochs,    patience=patience,  # early stopping patience
+    epochs=epochs,
+    patience=patience,  # early stopping patience
     batch=batch_size,
     workers=8,  # number of workers threads for dataloader
     save_period=int(0.1 * epochs),  # save model snapshots every 10% of epochs
