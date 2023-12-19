@@ -1,7 +1,6 @@
 """ Script to run inference on images, videos, or folder/url of images & videos using YOLOv8 """
 import argparse
 from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import torch
@@ -72,6 +71,7 @@ class YoloTracker:
             result_dfs.append(result_df)
         
         return result_dfs
+    
 
     def save_results(self, results_df, dest_name):
         """The function saves the results as .parquet, .csv and .txt 
@@ -110,6 +110,7 @@ class YoloTracker:
             .loc[:, ['frame', 'id', 'bb_left', 'bb_top', 'bb_width', 'bb_height', 'conf', 'x', 'y', 'z']]
             .to_csv(dest / 'tracking_blackbuck_mot.txt', index=False, header=False)
         )
+        return dest
 
     def run_yolo_tracking(self):
 
@@ -153,8 +154,11 @@ class YoloTracker:
         # setup model and run tracking 
         results_df, dest_name = self.run_yolo_tracking()
 
-        # Save results
-        self.save_results(self, results_df, dest_name)
+        # Save results and get name of the directory
+        dest = self.save_results(results_df, dest_name)
+
+        return dest
+
 
 # The whole function is converted to an argument and run through a function
 def detect_and_track(args):
