@@ -3,10 +3,7 @@ import json
 import os
 from pathlib import Path
 
-import torch
 import yaml
-from ultralytics import YOLO
-from ultralytics import settings
 
 from utility import cur_dt_str, args_in_lines
 
@@ -27,10 +24,15 @@ try:
 except ImportError:
     print('comet_ml not installed, model training not logged.')
     experiment = None
-except comet_ml.exceptions.CometException:
-    print(f'model training not logged since comet failed to initialize. '
+except Exception:
+    print(f'model training not logged since comet failed to initialize.\n'
           f'{COMET_API_KEY=}, {COMET_PROJECT_NAME=}, {COMET_WORKSPACE=}')
+    # TODO: give detail why comet failed to initialize. check where is .comet.config file
     experiment = None
+finally:
+    import torch
+    from ultralytics import YOLO
+    from ultralytics import settings
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default='yolov8l.pt', help='Model.pt path(s) or pretrained model name')
