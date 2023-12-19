@@ -17,6 +17,8 @@ experiment = Experiment(
     project_name=os.getenv("COMET_PROJECT_NAME"),
     workspace=os.getenv("COMET_WORKSPACE"),
 )
+# add date as tag
+experiment.add_tag(f'train_{cur_dt_str().split("-",1)[0]}')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default='yolov8l.pt', help='Model.pt path(s) or pretrained model name')
