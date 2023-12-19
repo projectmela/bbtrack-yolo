@@ -3,22 +3,34 @@ import json
 import os
 from pathlib import Path
 
-import comet_ml
 import torch
 import yaml
-from comet_ml import Experiment
 from ultralytics import YOLO
 from ultralytics import settings
 
 from utility import cur_dt_str, args_in_lines
 
-experiment = Experiment(
-    api_key=os.getenv("COMET_API_KEY"),
-    project_name=os.getenv("COMET_PROJECT_NAME"),
-    workspace=os.getenv("COMET_WORKSPACE"),
-)
-# add date as tag
-experiment.add_tag(f'train_{cur_dt_str().split("-",1)[0]}')
+COMET_API_KEY = os.getenv("COMET_API_KEY")
+COMET_PROJECT_NAME = os.getenv("COMET_PROJECT_NAME")
+COMET_WORKSPACE = os.getenv("COMET_WORKSPACE")
+try:
+    import comet_ml
+    from comet_ml import Experiment
+
+    experiment = Experiment(
+        api_key=COMET_API_KEY,
+        project_name=COMET_PROJECT_NAME,
+        workspace=COMET_WORKSPACE,
+    )
+    # add date as tag
+    experiment.add_tag(f'train_{cur_dt_str().split("-", 1)[0]}')
+except ImportError:
+    print('comet_ml not installed, model training not logged.')
+    experiment = None
+except comet_ml.exceptions.CometException:
+    print(f'model training not logged since comet failed to initialize. '
+          f'{COMET_API_KEY=}, {COMET_PROJECT_NAME=}, {COMET_WORKSPACE=}')
+    experiment = None
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default='yolov8l.pt', help='Model.pt path(s) or pretrained model name')
@@ -36,8 +48,7 @@ print(args_in_lines(args))
 dataset_file = args.dataset
 image_size = args.image_size
 batch_size = args.batch_size
-epochs = args.epochs
-workers = args.workers
+epochs = args.epochsworkers = args.workers
 base_model = args.model
 patience = args.patience
 ontology = args.ontology
@@ -69,15 +80,15 @@ model = YOLO(base_model)
 
 model_train_param_str = f"m={Path(base_model).stem}_imgsz={image_size}_bs={batch_size}"
 model_name = f"d={Path(dataset_file).stem}_o={ontology}_{model_train_param_str}_{cur_dt_str()}"
-experiment.set_name(model_name)
+if experiment is not None:
+    experiment.set_name(model_name)
 
 # train the model
 model.train(
     data=dataset_file,
     optimizer='auto',
     device=device,
-    epochs=epochs,
-    patience=patience,  # early stopping patience
+    epochs=epochs,    patience=patience,  # early stopping patience
     batch=batch_size,
     workers=8,  # number of workers threads for dataloader
     save_period=int(0.1 * epochs),  # save model snapshots every 10% of epochs
