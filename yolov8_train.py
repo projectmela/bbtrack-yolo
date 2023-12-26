@@ -33,15 +33,17 @@ except comet_ml.exceptions.CometException:
     experiment = None
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-m', '--model', type=str, default='yolov8l.pt', help='Model.pt path(s) or pretrained model name')
-parser.add_argument('-d', '--dataset', type=str, default='', help='dataset.yaml path')
+parser.add_argument('-m', '--model', type=str, default='yolov8m.pt', help='Model.pt path(s) or pretrained model name')
+parser.add_argument('-d', '--dataset', type=str,
+                    default='/abyss/home/localcode/labelbox-handler/yolov8_labels/mc_dtc2023/mc_dtc2023.yaml',
+                    help='dataset.yaml path')
 parser.add_argument('--image_size', type=int, default=5472,
                     help='image size, default to original size in blackbuck dataset, 5472')
-parser.add_argument('--batch_size', type=int, default=-1, help='batch size, default to auto (-1)')
-parser.add_argument('-e', '--epochs', type=int, default=10, help='number of epochs, default to 10')
+parser.add_argument('--batch_size', type=int, default=1, help='batch size, default to auto (-1)')
+parser.add_argument('-e', '--epochs', type=int, default=10000, help='number of epochs, default to 10')
 parser.add_argument('--workers', type=int, default=8, help='number of workers for dataloader, default to 8')
-parser.add_argument('--patience', type=int, default=100, help='early stopping patience, default to 100')
-parser.add_argument('--ontology', type=str, default='all_mc', help='str to indicate ontology, default to empty str')
+parser.add_argument('--patience', type=int, default=1000, help='early stopping patience, default to 100')
+parser.add_argument('--ontology', type=str, default='all-mc', help='str to indicate ontology, default to empty str')
 
 args = parser.parse_args()
 print(args_in_lines(args))
