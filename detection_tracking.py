@@ -49,7 +49,7 @@ class YoloTracker:
             else:  # different image from same video, increment id
                 frame_id += 1
 
-            result_np = result.numpy()
+            result_np = result.cpu().numpy()
             boxes = result_np.boxes.xywh
             conf = result_np.boxes.conf
             classes = result_np.boxes.cls
