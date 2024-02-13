@@ -60,7 +60,7 @@ results = model.predict(
 # open csv file
 dest = Path(args.save_dir) / dest_name
 dest.mkdir(parents=True, exist_ok=True)
-csv_path = dest / 'yolov8_dets.csv'
+csv_path = dest / 'detection.csv'
 csv_file = open(csv_path, 'w')
 # write csv header
 csv_file.write("file_path,frame,id,"
@@ -102,7 +102,7 @@ finally:
     logger.info(f'Converting results to csv ...')
     result_df = pd.read_csv(csv_path)
     try:
-        result_df.to_parquet(dest / 'yolov8_dets.parquet')
+        result_df.to_parquet(dest / 'detection.parquet')
     except ImportError as e:
         print(f"'pyarrow' or 'fastparquet' not found, only saving to csv instead. See error: {e}")
 
@@ -124,4 +124,4 @@ finally:
     else:
         (bb_df
          .loc[:, ['frame', 'id', 'bb_left', 'bb_top', 'bb_width', 'bb_height', 'conf', 'x', 'y', 'z']]
-         .to_csv(dest / 'yolov8_dets_bb_mot.txt', index=False, header=False))
+         .to_csv(dest / 'detection_blackbuck_mot.txt', index=False, header=False))
