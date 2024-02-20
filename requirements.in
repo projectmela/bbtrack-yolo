@@ -1,0 +1,10 @@
+torch
+torchvision
+ultralytics
+scikit-learn
+loguru
+tensorboard
+comet_ml
+pyarrow
+"labelbox[data]"
+lapx
