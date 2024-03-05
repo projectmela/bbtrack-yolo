@@ -41,14 +41,17 @@ class BBoxDetection:
         save_to(save_dir: Union[Path, str], csv: bool = False):
             save predictions as a parquet DataFrame file in the given directory
         load_from(file_path: Union[Path, str]) -> "BBoxDetection":
-            load predictions from a parquet or csv file
+            load predictions from parquet or csv file
         save_to_mot17(file_path: Union[Path, str]):
             save to MOT17 format
-        load_from_mot17(file_path: Union[Path, str], class_id: int = -1, class_name: str = "object") -> "BBoxDetection":
+        load_from_mot17(file_path: Union[Path, str],
+                        class_id: int = -1,
+                        class_name: str = "object") -> "BBoxDetection":
             load from MOT17 format txt file
         to_mot17() -> npt.NDArray:
             return predictions in MOT17 format
-        plot_on(video_path: Union[Path, str], output_dir: Optional[Union[Path, str]] = None):
+        plot_on(video_path: Union[Path, str],
+                output_dir: Optional[Union[Path, str]] = None):
             plot boxes on video frames
         ltrb() -> npt.NDArray:
             return bboxes in ltrb (x1, y1, x2, y2) format
@@ -61,7 +64,7 @@ class BBoxDetection:
         frame_range() -> Tuple[int, int]:
             return min and max frame number
         at(frame: int) -> "BBoxDetection":
-            return the detection at a specific frame
+            return detections at a specific frame
     """
 
     # TODO: upon pandera issue #763 fixed, update code
@@ -331,5 +334,5 @@ class BBoxDetection:
         return self._df["frame"].min(), self._df["frame"].max()
 
     def at(self, frame: int) -> "BBoxDetection":
-        """ return the detection at a specific frame """
+        """ return detections at a specific frame """
         return BBoxDetection(self._df[self._df["frame"].eq(frame)])

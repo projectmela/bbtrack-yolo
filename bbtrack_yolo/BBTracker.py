@@ -1,11 +1,12 @@
+""" A tracker class to track bbox detections with YOLOv8-implemented BYTETracker """
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+from pydantic.dataclasses import dataclass
+from tqdm.auto import tqdm
+from ultralytics.trackers.byte_tracker import BYTETracker  # type: ignore
 
 from bbtrack_yolo.BBoxDetection import BBoxDetection
-from pydantic.dataclasses import dataclass
-from ultralytics.trackers.byte_tracker import BYTETracker  # type: ignore
-from tqdm.auto import tqdm
 
 
 @dataclass(frozen=True)
@@ -13,30 +14,46 @@ class BYTETrackerConfig:
     """ Arguments for BYTETracker implementation in YOLOv8 """
     track_high_thresh: float = 0.1  # threshold for the first association
     track_low_thresh: float = 0.01  # threshold for the second association
-    new_track_thresh: float = 0.1  # threshold for init new track if the detection does not match any tracks
+    new_track_thresh: float = 0.1  # threshold for init new track if the detection does
+    # not match any tracks
+
     track_buffer: int = 30  # buffer to calculate the time when to remove tracks
     match_thresh: float = 0.8  # threshold for matching tracks
-    # min_box_area: 10  # threshold for min box areas(for tracker evaluation, not used for now)
-    # mot20: False  # for tracker evaluation(not used for now)
+
+    # threshold for min box areas (for tracker evaluation, not used for now)
+    # min_box_area: 10
+    # mot20: False # for tracker evaluation(not used for now)
 
 
 class Config:
+    """ Pydantic config to allow arbitrary types such as numpy arrays """
     arbitrary_types_allowed = True
 
 
 @dataclass(config=Config)
 class BYTEDetection:
     """ Detections in a single frame
-    BYTETracker implementation in YOLOv8 expect the detection object in the following format:
+    BYTETracker implementation in YOLOv8 expect the following format of detections
     """
 
-    xywh: npt.NDArray  # shape (N, 4), (center x, center y, width, height) of the detections
-    conf: npt.NDArray  # shape (N,), confidence of the detections
-    cls: npt.NDArray  # shape (N,), class of the detections
+    xywh: npt.NDArray  # shape (N, 4), bbox in (center x, center y, width, height)
+    conf: npt.NDArray  # shape (N, ), confidence of the detections
+    cls: npt.NDArray  # shape (N, ), class of the detections
 
 
 class BBTracker:
-    """ A tracker implemented to track the bounding boxes of the detected objects """
+    """ A tracker implemented to track the bounding boxes of the detected objects
+
+    Args:
+        config: BYTETrackerConfig, arguments for BYTETracker implementation
+
+    Attributes:
+        config(BYTETrackerConfig): arguments for BYTETracker implementation
+        tracker(BYTETracker): BYTETracker implementation in YOLOv8
+
+    Methods:
+        track(dets: BBoxDetection) -> BBoxDetection: Track the bounding boxes
+    """
 
     def __init__(self, config: BYTETrackerConfig):
         self.config = config
@@ -91,7 +108,6 @@ class BBTracker:
         # convert track_id, frame to int
         df["frame"] = df["frame"].astype(int)
         df["track_id"] = df["track_id"].astype(int)
-
 
         # add dummy file_path
         # TODO: what to do with file_path?

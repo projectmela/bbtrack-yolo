@@ -1,3 +1,4 @@
+""" Bounding Box Detector class """
 import json
 import os
 import traceback
@@ -77,6 +78,7 @@ class BBDetectorConfig:
 
     @property
     def model_name(self) -> str:
+        """ model name for training or inference naming """
         if (YOLO.is_hub_model(self.model)
                 and self.data is not None):
             # a base model from ultralytics, generate model_name in training case
@@ -94,12 +96,27 @@ class BBDetectorConfig:
 
     @property
     def model_train_param_str(self) -> str:
+        """ model training parameters as string """
         return (f"m={Path(self.model).stem}_"
                 f"imgsz={self.imgsz}_"
                 f"bs={self.batch}")
 
 
 class BBDetector:
+    """ Bounding Box Detector
+
+    Attributes:
+        config(BBDetectorConfig): configuration of the detector
+        model(ultralytics.YOLO): the model to detect bounding boxes
+
+    Methods:
+        train():
+            not implemented yet
+        eval():
+            not implemented yet
+        detect(source: Union[str, Path]) -> BBoxDetection:
+            detect bounding boxes from source
+    """
     config: BBDetectorConfig
 
     def __init__(
@@ -111,7 +128,7 @@ class BBDetector:
 
     def train(self):
         """ train the model with configs """
-
+        raise NotImplementedError("Training is not implemented yet.")
         # try to log training with comet
         COMET_API_KEY = os.getenv("COMET_API_KEY")
         COMET_PROJECT_NAME = os.getenv("COMET_PROJECT_NAME")
@@ -142,6 +159,7 @@ class BBDetector:
         self.model.train(**asdict(self.config))
 
     def eval(self):
+        """ evaluate the model """
         metrics = self.model.val(
             # data=, # need to specify dataset.yaml if not in default location
             imgsz=self.config.imgsz,
@@ -183,6 +201,7 @@ class BBDetector:
             json.dump(model_eval_results, f)
 
     def detect(self, source: Union[str, Path]) -> BBoxDetection:
+        """ detect bounding boxes from source """
         model_name = self.config.model_name
         source_name = Path(source).stem
         pred_save_dir = Path(self.config.pred_save_dir) / model_name
