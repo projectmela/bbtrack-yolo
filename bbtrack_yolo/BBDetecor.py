@@ -4,7 +4,7 @@ import traceback
 from dataclasses import asdict
 from functools import cached_property
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 import pandas as pd
 import torch
@@ -48,6 +48,11 @@ class BBDetectorConfig:
     # prediction parameters
     pred_save_dir: str = "predictions"  # directory to save the predictions
     pred_th: float = Field(ge=0.0, default=0.0)  # pred threshold for confidence (score)
+
+    # save predictions with some classes only
+    keep_only_classes: List[str] = Field(
+        default_factory=lambda: ['blackbuck', 'bb_male', 'bb_female']
+    )
 
     @field_validator("model", mode="before")
     @classmethod
@@ -196,6 +201,9 @@ class BBDetector:
             save_conf=True,
         )  # in stream mode, return a generator
 
+        if self.config.keep_only_classes:
+            tqdm.write(f"Predictions saved with {self.config.keep_only_classes} only.")
+
         csv_path = self._stream_write_predictions(
             results,
             save_dir=pred_save_dir / pred_name
@@ -252,6 +260,9 @@ class BBDetector:
                         if self.model.names is not None
                         else str(cls)
                     )
+                    if (self.config.keep_only_classes
+                            and cls_name not in self.config.keep_only_classes):
+                        continue
                     csv_file.write(f"\"{result.path}\","
                                    f"{frame_id},"
                                    f"-1,"  # dummy track id
