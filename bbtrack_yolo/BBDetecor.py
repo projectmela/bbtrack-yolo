@@ -1,7 +1,6 @@
 """ Bounding Box Detector class """
 import json
 import os
-import traceback
 from dataclasses import asdict
 from functools import cached_property
 from pathlib import Path
@@ -55,8 +54,8 @@ class BBDetectorConfig:
         default_factory=lambda: ['blackbuck', 'bb_male', 'bb_female']
     )
 
-    @field_validator("model", mode="before")
     @classmethod
+    @field_validator("model", mode="before")
     def model_path_to_str(cls, v):
         """ convert to str when model is a Path """
         return v.as_posix() if isinstance(v, Path) else v
@@ -160,6 +159,7 @@ class BBDetector:
 
     def eval(self):
         """ evaluate the model """
+        raise NotImplementedError("Evaluation is not implemented yet.")
         metrics = self.model.val(
             # data=, # need to specify dataset.yaml if not in default location
             imgsz=self.config.imgsz,
@@ -187,7 +187,7 @@ class BBDetector:
             'batch_size': self.config.batch,
         }
         model_eval_results.update({
-            f"{self.model.names[cls]}_map": map for cls, map in
+            f"{self.model.names[cls]}_map": _map for cls, _map in
             zip(self.model.names, cls_map50_95)
         })
         model_eval_results.update({
@@ -287,9 +287,6 @@ class BBDetector:
                                    f"-1,"  # dummy track id
                                    f"{bbl},{bbt},{bbw},{bbh},"
                                    f"{conf},{cls},{cls_name}\n")
-        except Exception:  # catch all exceptions, stop inference but save results
-            tqdm.write(f'Error occurred during inference:\n{traceback.format_exc()}')
-            tqdm.write('Returning partial results ...')
         finally:
             csv_file.close()
             return csv_path
