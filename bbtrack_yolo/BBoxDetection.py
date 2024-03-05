@@ -1,3 +1,4 @@
+""" Bounding box detection class for multiple frames """
 from pathlib import Path
 from typing import Union, Optional, Tuple
 
@@ -10,7 +11,7 @@ from tqdm.asyncio import tqdm
 
 
 class BBoxDetectionSchema(pa.DataFrameModel):
-    """ schema for BBPrediction """
+    """ BBoxDetection Schema """
     file_path: str
     frame: int
     bb_left: float
@@ -24,7 +25,44 @@ class BBoxDetectionSchema(pa.DataFrameModel):
 
 
 class BBoxDetection:
-    """ bounding box detection class for multiple frames"""
+    """ Bounding box detection class for multiple frames
+
+    Args:
+        df (pd.DataFrame):
+            DataFrame with detections, comply with BBoxDetectionSchema
+
+    Attributes:
+        _df (pd.DataFrame):
+            DataFrame with detections, comply with BBoxDetectionSchema
+        cls_id_to_name (Dict[int, str]):
+            class_id to class_name mapping
+
+    Methods:
+        save_to(save_dir: Union[Path, str], csv: bool = False):
+            save predictions as a parquet DataFrame file in the given directory
+        load_from(file_path: Union[Path, str]) -> "BBoxDetection":
+            load predictions from a parquet or csv file
+        save_to_mot17(file_path: Union[Path, str]):
+            save to MOT17 format
+        load_from_mot17(file_path: Union[Path, str], class_id: int = -1, class_name: str = "object") -> "BBoxDetection":
+            load from MOT17 format txt file
+        to_mot17() -> npt.NDArray:
+            return predictions in MOT17 format
+        plot_on(video_path: Union[Path, str], output_dir: Optional[Union[Path, str]] = None):
+            plot boxes on video frames
+        ltrb() -> npt.NDArray:
+            return bboxes in ltrb (x1, y1, x2, y2) format
+        xywh() -> npt.NDArray:
+            return bboxes in xywh (center_x, center_y, width, height) format
+        conf() -> npt.NDArray:
+            return confidence
+        cls_id() -> npt.NDArray:
+            return class
+        frame_range() -> Tuple[int, int]:
+            return min and max frame number
+        at(frame: int) -> "BBoxDetection":
+            return the detection at a specific frame
+    """
 
     # TODO: upon pandera issue #763 fixed, update code
     # 1. type hint "df: pat.DataFrame[BBPredictionSchema]"
@@ -35,14 +73,12 @@ class BBoxDetection:
             self,
             df: pd.DataFrame
     ):
-        self.seq_name = ""
-        self.frame_width: int
-        self.frame_height: int
-
         BBoxDetectionSchema.validate(df)
         self._df = df.copy()
+
+        # TODO: better way to handle class_id and class_name
         self.cls_id_to_name = (
-            self._df[["class_id", "class_name"]]
+            self._df.loc[["class_id", "class_name"]]
             .drop_duplicates()
             .set_index("class_id")["class_name"]
             .to_dict()
@@ -67,9 +103,9 @@ class BBoxDetection:
         tracked = not self._df["track_id"].eq(-1).all()
 
         if tracked:
-            file_name = f"{self.seq_name}_tracked.parquet"
+            file_name = "detection.parquet"
         else:
-            file_name = f"{self.seq_name}_untracked.parquet"
+            file_name = "tracking.parquet"
 
         # save parquet file
         file_path = save_dir / file_name
@@ -82,7 +118,7 @@ class BBoxDetection:
 
     @staticmethod
     def load_from(file_path: Union[Path, str]) -> "BBoxDetection":
-        """ load predictions from a parquet file
+        """ load predictions from a parquet or csv file
 
         Args:
             file_path (Union[Path, str]): file path to load from
@@ -162,8 +198,8 @@ class BBoxDetection:
         df["class_id"] = class_id
         df["class_name"] = class_name
 
-        df = df[["frame", "bb_left", "bb_top", "bb_width", "bb_height",
-                 "confidence", "track_id", "class_id", "class_name"]]
+        df = df.loc[["frame", "bb_left", "bb_top", "bb_width", "bb_height",
+                     "confidence", "track_id", "class_id", "class_name"]]
 
         return BBoxDetection(df)
 
@@ -173,9 +209,9 @@ class BBoxDetection:
         mot_df["x"] = -1
         mot_df["y"] = -1
         mot_df["z"] = -1
-        mot_df = mot_df[["frame", "track_id",
-                         "bb_left", "bb_top", "bb_width", "bb_height",
-                         "confidence", "x", "y", "z"]]
+        mot_df = mot_df.loc[["frame", "track_id",
+                             "bb_left", "bb_top", "bb_width", "bb_height",
+                             "confidence", "x", "y", "z"]]
         return mot_df.to_numpy()
 
     def plot_on(
@@ -265,16 +301,16 @@ class BBoxDetection:
 
     @property
     def ltrb(self) -> npt.NDArray:
-        """ return ltrb (x1, y1, x2, y2) format """
-        ltrb = self._df[["bb_left", "bb_top", "bb_width", "bb_height"]].copy()
+        """ return bboxes in ltrb (x1, y1, x2, y2) format """
+        ltrb = self._df.loc[["bb_left", "bb_top", "bb_width", "bb_height"]].copy()
         ltrb["bb_width"] += ltrb["bb_left"]
         ltrb["bb_height"] += ltrb["bb_top"]
         return ltrb.to_numpy()
 
     @property
     def xywh(self) -> npt.NDArray:
-        """ return xywh (center_x, center_y, width, height) format """
-        xywh = self._df[["bb_left", "bb_top", "bb_width", "bb_height"]].copy()
+        """ return bboxes in xywh (center_x, center_y, width, height) format """
+        xywh = self._df.loc[["bb_left", "bb_top", "bb_width", "bb_height"]].copy()
         xywh["bb_left"] += xywh["bb_width"] / 2
         xywh["bb_top"] += xywh["bb_height"] / 2
         return xywh.to_numpy()
