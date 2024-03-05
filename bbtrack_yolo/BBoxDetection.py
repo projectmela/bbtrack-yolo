@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union, Optional, Tuple
 
 import cv2
 import pandas as pd
@@ -8,7 +8,7 @@ from numpy import typing as npt
 from tqdm.asyncio import tqdm
 
 
-class BBPredictionSchema(pa.DataFrameModel):
+class BBoxDetectionSchema(pa.DataFrameModel):
     """ schema for BBPrediction """
     file_path: str
     frame: int
@@ -22,8 +22,8 @@ class BBPredictionSchema(pa.DataFrameModel):
     class_name: str
 
 
-class BBPrediction:
-    """ bounding box prediction class """
+class BBoxDetection:
+    """ bounding box detection class for multiple frames"""
 
     # TODO: upon pandera issue #763 fixed, update code
     # 1. type hint "df: pat.DataFrame[BBPredictionSchema]"
@@ -38,8 +38,14 @@ class BBPrediction:
         self.frame_width: int
         self.frame_height: int
 
-        BBPredictionSchema.validate(df)
+        BBoxDetectionSchema.validate(df)
         self._df = df.copy()
+        self.cls_id_to_name = (
+            self._df[["class_id", "class_name"]]
+            .drop_duplicates()
+            .set_index("class_id")["class_name"]
+            .to_dict()
+        )
 
     def save_to(self, save_dir: Union[Path, str], csv: bool = False):
         """ save predictions as a parquet DataFrame file in the given directory
@@ -74,7 +80,7 @@ class BBPrediction:
             self._df.to_csv(file_path_csv, index=False, header=True)
 
     @staticmethod
-    def load_from(file_path: Union[Path, str]) -> "BBPrediction":
+    def load_from(file_path: Union[Path, str]) -> "BBoxDetection":
         """ load predictions from a parquet file
 
         Args:
@@ -87,12 +93,15 @@ class BBPrediction:
             raise FileNotFoundError(f"{file_path} does not exist")
         elif not file_path.is_file():
             raise ValueError("file_path should be a file")
-        elif file_path.suffix != ".parquet":
-            raise ValueError("file_path should be a parquet file")
 
-        df = pd.read_parquet(file_path)
+        if file_path.suffix == ".parquet":
+            df = pd.read_parquet(file_path)
+        elif file_path.suffix == ".csv":
+            df = pd.read_csv(file_path)
+        else:
+            raise ValueError("file_path should be a parquet or csv file")
 
-        return BBPrediction(df=df)
+        return BBoxDetection(df=df)
 
     def save_to_mot17(
             self,
@@ -116,7 +125,7 @@ class BBPrediction:
             file_path: Union[Path, str],
             class_id: int = -1,
             class_name: str = "object"
-    ) -> "BBPrediction":
+    ) -> "BBoxDetection":
         """ load from MOT17 format txt file """
 
         file_path = Path(file_path)
@@ -155,7 +164,7 @@ class BBPrediction:
         df = df[["frame", "bb_left", "bb_top", "bb_width", "bb_height",
                  "confidence", "track_id", "class_id", "class_name"]]
 
-        return BBPrediction(df)
+        return BBoxDetection(df)
 
     def to_mot17(self) -> npt.NDArray:
         """ return predictions in MOT17 format """
@@ -181,7 +190,7 @@ class BBPrediction:
             output_dir = Path(output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
 
-        output_file = output_dir / f"{self.seq_name}_plotted.mp4"
+        output_file = output_dir / f"{video_path.stem}_plotted.mp4"
 
         src_vc = cv2.VideoCapture(str(video_path))
         fps = src_vc.get(cv2.CAP_PROP_FPS)

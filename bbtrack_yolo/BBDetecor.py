@@ -13,7 +13,7 @@ from pydantic.dataclasses import dataclass
 from tqdm.auto import tqdm
 from ultralytics import YOLO  # type: ignore
 
-from bbtrack_yolo.BBPrediction import BBPrediction
+from bbtrack_yolo.BBoxDetection import BBoxDetection
 from utility import cur_dt_str
 
 
@@ -177,7 +177,7 @@ class BBDetector:
         with open(f'models/{self.config.name}/processed_eval.json', 'w') as f:
             json.dump(model_eval_results, f)
 
-    def detect(self, source: Union[str, Path]) -> BBPrediction:
+    def detect(self, source: Union[str, Path]) -> BBoxDetection:
         model_name = self.config.model_name
         source_name = Path(source).stem
         pred_save_dir = Path(self.config.pred_save_dir) / model_name
@@ -203,7 +203,7 @@ class BBDetector:
 
         # convert the written result from csv to BBPrediction
         result_df = pd.read_csv(csv_path)
-        return BBPrediction(result_df)
+        return BBoxDetection(result_df)
 
     def _stream_write_predictions(
             self,
