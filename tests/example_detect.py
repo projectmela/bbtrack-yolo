@@ -12,9 +12,10 @@ assert test_model_path.exists(), "test_model_path does not exist"
 
 # create detector config, "model" is required, other fields are optional
 detector_config = BBDetectorConfig(
-    model=test_model_path.as_posix()
+    model=test_model_path
 )
 
+# initialize detector
 detector = BBDetector(config=detector_config)
 
 # get detections

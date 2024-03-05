@@ -8,7 +8,7 @@ from typing import Optional, Union
 
 import pandas as pd
 import torch
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic.dataclasses import dataclass
 from tqdm.auto import tqdm
 from ultralytics import YOLO  # type: ignore
@@ -23,7 +23,7 @@ class BBDetectorConfig:
     Bounding Box Detector Arguments
     """
 
-    model: str  # model name or model path
+    model: Union[str, Path]  # model name or model path
 
     # training parameters
     data: Optional[str] = None  # path to the dataset yaml file
@@ -48,6 +48,12 @@ class BBDetectorConfig:
     # prediction parameters
     pred_save_dir: str = "predictions"  # directory to save the predictions
     pred_th: float = Field(ge=0.0, default=0.0)  # pred threshold for confidence (score)
+
+    @field_validator("model", mode="before")
+    @classmethod
+    def model_path_to_str(cls, v):
+        """ convert to str when model is a Path """
+        return v.as_posix() if isinstance(v, Path) else v
 
     @cached_property
     def name(self) -> str:
