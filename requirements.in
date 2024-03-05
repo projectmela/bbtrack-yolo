@@ -6,5 +6,7 @@ loguru
 tensorboard
 comet_ml
 pyarrow
-"labelbox[data]"
+labelbox[data]
 lapx
+pandera
+pydantic
