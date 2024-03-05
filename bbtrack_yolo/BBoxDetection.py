@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Union, Optional, Tuple
 
 import cv2
+import numpy as np
 import pandas as pd
 import pandera as pa
 from numpy import typing as npt
@@ -183,9 +184,10 @@ class BBoxDetection:
             output_dir: Optional[Union[Path, str]] = None
     ):
         """plot boxes on video frames"""
-
+        video_path = Path(video_path)
+        output_dir = Path(output_dir) if output_dir else None
         if output_dir is None:
-            output_dir = Path(video_path).parent
+            output_dir = video_path.parent
         else:
             output_dir = Path(output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
@@ -207,6 +209,18 @@ class BBoxDetection:
             tqdm.write(f"Warning: video frames {n_video_frames}, "
                        f"prediction frames {n_pred_frames}")
 
+        # create random colors for each object
+        n_objects = 200
+        np.random.seed(42)
+        colors = np.random.rand(n_objects, 3)
+        # convert to tuple(int) and de-normalize
+        color_map = [tuple(map(int, c * 255)) for c in colors]
+
+        # other format
+        font_scale = 1.3
+        font_thickness = 3
+        line_width = 2
+
         # iterate over frames
         for frame_id, frame in tqdm(enumerate(range(n_video_frames)),
                                     total=n_video_frames,
@@ -217,11 +231,26 @@ class BBoxDetection:
 
             # plot boxes
             for _, row in self._df[self._df["frame"].eq(frame_id + 1)].iterrows():
+                track_id = row["track_id"]
+                color = color_map[track_id % n_objects]
+
                 x, y, w, h = (
                     row[["bb_left", "bb_top", "bb_width", "bb_height"]].astype(int)
                 )
-                # TODO: add track_id, color, class_name and confidence
-                cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+                # TODO: add class_name and confidence
+                cv2.rectangle(img, (x, y), (x + w, y + h), color, line_width)
+                # plot id
+                shift = 8
+                cv2.putText(
+                    img,
+                    str(track_id),
+                    (x - shift, y - shift),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    font_scale,
+                    color,
+                    font_thickness,
+                )
 
             # write frame
             out_vc.write(img)
@@ -233,3 +262,38 @@ class BBoxDetection:
         # check if the output file exists
         if not output_file.exists():
             raise FileNotFoundError(f"Failed to create {output_file}")
+
+    @property
+    def ltrb(self) -> npt.NDArray:
+        """ return ltrb (x1, y1, x2, y2) format """
+        ltrb = self._df[["bb_left", "bb_top", "bb_width", "bb_height"]].copy()
+        ltrb["bb_width"] += ltrb["bb_left"]
+        ltrb["bb_height"] += ltrb["bb_top"]
+        return ltrb.to_numpy()
+
+    @property
+    def xywh(self) -> npt.NDArray:
+        """ return xywh (center_x, center_y, width, height) format """
+        xywh = self._df[["bb_left", "bb_top", "bb_width", "bb_height"]].copy()
+        xywh["bb_left"] += xywh["bb_width"] / 2
+        xywh["bb_top"] += xywh["bb_height"] / 2
+        return xywh.to_numpy()
+
+    @property
+    def conf(self) -> npt.NDArray:
+        """ return confidence """
+        return self._df["confidence"].to_numpy()
+
+    @property
+    def cls_id(self) -> npt.NDArray:
+        """ return class """
+        return self._df["class_id"].to_numpy()
+
+    @property
+    def frame_range(self) -> Tuple[int, int]:
+        """ return min and max frame number """
+        return self._df["frame"].min(), self._df["frame"].max()
+
+    def at(self, frame: int) -> "BBoxDetection":
+        """ return the detection at a specific frame """
+        return BBoxDetection(self._df[self._df["frame"].eq(frame)])
