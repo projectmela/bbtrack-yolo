@@ -1,6 +1,6 @@
 """ Bounding box detection class for multiple frames """
 from pathlib import Path
-from typing import Union, Optional, Tuple
+from typing import Union, Optional, Tuple, List
 
 import cv2
 import numpy as np
@@ -222,7 +222,8 @@ class BBoxDetection:
     def plot_on(
             self,
             video_path: Union[Path, str],
-            output_dir: Optional[Union[Path, str]] = None
+            output_dir: Optional[Union[Path, str]] = None,
+            first_n_frames: int = -1,
     ):
         """plot boxes on video frames"""
         video_path = Path(video_path)
@@ -266,6 +267,10 @@ class BBoxDetection:
         for frame_id, frame in tqdm(enumerate(range(n_video_frames)),
                                     total=n_video_frames,
                                     bar_format="{l_bar}{bar:10}{r_bar}"):
+
+            if 0 < first_n_frames <= frame_id:
+                break
+
             ret, img = src_vc.read()
             if not ret:
                 break
@@ -338,3 +343,12 @@ class BBoxDetection:
     def at(self, frame: int) -> "BBoxDetection":
         """ return detections at a specific frame """
         return BBoxDetection(self._df[self._df["frame"].eq(frame)])
+
+    def filter_classes(self, classes: Union[List[str], List[int]]) -> "BBoxDetection":
+        """filter classes"""
+        if all(isinstance(c, int) for c in classes):
+            return BBoxDetection(self._df[self._df["class_id"].isin(classes)])
+        elif all(isinstance(c, str) for c in classes):
+            return BBoxDetection(self._df[self._df["class_name"].isin(classes)])
+        else:
+            raise ValueError("classes should be a list of int or str")
