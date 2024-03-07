@@ -51,7 +51,7 @@ class BBDetectorConfig:
 
     # save predictions with some classes only
     keep_only_classes: List[str] = Field(
-        default_factory=lambda: ['blackbuck', 'bb_male', 'bb_female']
+        default_factory=lambda: ['blackbuck', 'bbmale', 'bbfemale', 'bb']
     )
 
     @classmethod
@@ -78,7 +78,7 @@ class BBDetectorConfig:
     @property
     def model_name(self) -> str:
         """ model name for training or inference naming """
-        if (YOLO.is_hub_model(self.model)
+        if (YOLO.is_hub_model(str(self.model))
                 and self.data is not None):
             # a base model from ultralytics, generate model_name in training case
             return (f"d={Path(self.data).stem}_"

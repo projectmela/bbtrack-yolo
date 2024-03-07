@@ -62,12 +62,16 @@ class BBTracker:
             frame_rate=30  # TODO: get frame rate from video
         )
 
-    def track(self, dets: BBoxDetection) -> BBoxDetection:
+    def track(self, dets: BBoxDetection, reset: bool = True) -> BBoxDetection:
         """ Track the bounding boxes """
+
+        if reset:
+            self.tracker.reset()
 
         tracking_results = np.empty((0, 9))
         # convert BBPrediction to BYTEDetection
         for frame_idx in tqdm(range(dets.frame_range[0], dets.frame_range[1] + 1),
+                              bar_format="{l_bar}{bar:10}{r_bar}",
                               desc="Tracking"):
             # get detections at the current frame
             frame_dets = dets.at(frame_idx)
