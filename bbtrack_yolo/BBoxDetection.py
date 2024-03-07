@@ -81,7 +81,7 @@ class BBoxDetection:
 
         # TODO: better way to handle class_id and class_name
         self.cls_id_to_name = (
-            self._df.loc[["class_id", "class_name"]]
+            self._df[["class_id", "class_name"]]
             .drop_duplicates()
             .set_index("class_id")["class_name"]
             .to_dict()
@@ -106,9 +106,9 @@ class BBoxDetection:
         tracked = not self._df["track_id"].eq(-1).all()
 
         if tracked:
-            file_name = "detection.parquet"
-        else:
             file_name = "tracking.parquet"
+        else:
+            file_name = "detection.parquet"
 
         # save parquet file
         file_path = save_dir / file_name
@@ -151,7 +151,9 @@ class BBoxDetection:
 
         file_path = Path(file_path)
 
-        if file_path.exists():
+        if file_path.is_dir():
+            file_path /= "mot17.txt"
+        elif file_path.exists():
             raise FileExistsError(f"{file_path} already exists")
         elif file_path.suffix != ".txt":
             raise ValueError("file_path should be a txt file")
@@ -304,16 +306,16 @@ class BBoxDetection:
 
     @property
     def ltrb(self) -> npt.NDArray:
-        """ return bboxes in ltrb (x1, y1, x2, y2) format """
-        ltrb = self._df.loc[["bb_left", "bb_top", "bb_width", "bb_height"]].copy()
+        """return bboxes in ltrb (x1, y1, x2, y2) format"""
+        ltrb = self._df[["bb_left", "bb_top", "bb_width", "bb_height"]].copy()
         ltrb["bb_width"] += ltrb["bb_left"]
         ltrb["bb_height"] += ltrb["bb_top"]
         return ltrb.to_numpy()
 
     @property
     def xywh(self) -> npt.NDArray:
-        """ return bboxes in xywh (center_x, center_y, width, height) format """
-        xywh = self._df.loc[["bb_left", "bb_top", "bb_width", "bb_height"]].copy()
+        """return bboxes in xywh (center_x, center_y, width, height) format"""
+        xywh = self._df[["bb_left", "bb_top", "bb_width", "bb_height"]].copy()
         xywh["bb_left"] += xywh["bb_width"] / 2
         xywh["bb_top"] += xywh["bb_height"] / 2
         return xywh.to_numpy()
