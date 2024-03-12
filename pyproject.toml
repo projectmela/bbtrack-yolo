@@ -8,21 +8,22 @@ readme = "README.md"
 packages = [{ include = "bbtrack_yolo", from = "." }]
 
 [tool.poetry.dependencies]
-python = "^3.8"
-torch = "^2.2.1"
-torchvision = "^0.17.1"
-ultralytics = "^8.1.23"
-scikit-learn = "^1.3.1"
-loguru = "^0.7.2"
-tensorboard = "^2.14.0"
-comet-ml = "^3.38.1"
-pyarrow = "^15.0.0"
-labelbox = { extras = ["data"], version = "^3.63.0" }
-lapx = "^0.5.5"
-pandera = "^0.18.0"
-pydantic = "^2.6.3"
-tqdm = "^4.66.2"
-
+python = "^3.9, <3.11"
+torch = "*"
+torchvision = "*"
+ultralytics = "*"
+scikit-learn = "*"
+numpy = "1.21.6"
+loguru = "*"
+tensorboard = "*"
+comet-ml = "*"
+pyarrow = "*"
+labelbox = { extras = ["data"], version = "*" }
+lapx = "*"
+pandera = "*"
+pydantic = "*"
+tqdm = "*"
+matplotlib = ">=3.8.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.2"
