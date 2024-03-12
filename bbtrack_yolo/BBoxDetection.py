@@ -3,6 +3,8 @@ from pathlib import Path
 from typing import Union, Optional, Tuple, List
 
 import cv2
+import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 import numpy as np
 import pandas as pd
 import pandera as pa
@@ -352,3 +354,17 @@ class BBoxDetection:
             return BBoxDetection(self._df[self._df["class_name"].isin(classes)])
         else:
             raise ValueError("classes should be a list of int or str")
+
+    def confidence_histogram(self) -> Axes:
+        """return confidence distribution"""
+        max_conf = self._df["confidence"].max()
+        ax: Axes = self._df["confidence"].hist(  # type: ignore
+            bins=list(np.arange(0, max_conf + 0.02, 0.01)), backend="matplotlib"
+        )
+        plt.yscale("log")
+        plt.xlabel("Confidence")
+        plt.ylabel("Count (log scale)")
+        plt.title("Confidence Distribution")
+        # set x ticks
+        ax.set_xticks(np.arange(0, max_conf + 0.1, 0.1))
+        return ax
