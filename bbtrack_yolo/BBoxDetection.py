@@ -1,19 +1,21 @@
 """ Bounding box detection class for multiple frames """
+
 from pathlib import Path
-from typing import Union, Optional, Tuple, List
+from typing import List, Optional, Tuple, Union
 
 import cv2
 import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
 import numpy as np
 import pandas as pd
 import pandera as pa
+from matplotlib.axes import Axes
 from numpy import typing as npt
 from tqdm.asyncio import tqdm
 
 
 class BBoxDetectionSchema(pa.DataFrameModel):
-    """ BBoxDetection Schema """
+    """BBoxDetection Schema"""
+
     file_path: str
     frame: int
     bb_left: float
@@ -27,7 +29,7 @@ class BBoxDetectionSchema(pa.DataFrameModel):
 
 
 class BBoxDetection:
-    """ Bounding box detection class for multiple frames
+    """Bounding box detection class for multiple frames
 
     Args:
         df (pd.DataFrame):
@@ -74,10 +76,7 @@ class BBoxDetection:
     # 2. remove validate method
     # 3. add decorators to the methods: @pa.check_types
 
-    def __init__(
-            self,
-            df: pd.DataFrame
-    ):
+    def __init__(self, df: pd.DataFrame):
         BBoxDetectionSchema.validate(df)
         self._df = df.copy()
 
@@ -90,7 +89,7 @@ class BBoxDetection:
         )
 
     def save_to(self, save_dir: Union[Path, str], csv: bool = False):
-        """ save predictions as a parquet DataFrame file in the given directory
+        """save predictions as a parquet DataFrame file in the given directory
 
         Args:
             save_dir (Union[Path, str]): directory to save the file
@@ -123,7 +122,7 @@ class BBoxDetection:
 
     @staticmethod
     def load_from(file_path: Union[Path, str]) -> "BBoxDetection":
-        """ load predictions from a parquet or csv file
+        """load predictions from a parquet or csv file
 
         Args:
             file_path (Union[Path, str]): file path to load from
@@ -145,11 +144,8 @@ class BBoxDetection:
 
         return BBoxDetection(df=df)
 
-    def save_to_mot17(
-            self,
-            file_path: Union[Path, str]
-    ):
-        """ save to MOT17 format """
+    def save_to_mot17(self, file_path: Union[Path, str]):
+        """save to MOT17 format"""
 
         file_path = Path(file_path)
 
@@ -166,11 +162,9 @@ class BBoxDetection:
 
     @staticmethod
     def load_from_mot17(
-            file_path: Union[Path, str],
-            class_id: int = -1,
-            class_name: str = "object"
+        file_path: Union[Path, str], class_id: int = -1, class_name: str = "object"
     ) -> "BBoxDetection":
-        """ load from MOT17 format txt file """
+        """load from MOT17 format txt file"""
 
         file_path = Path(file_path)
 
@@ -183,49 +177,85 @@ class BBoxDetection:
             raise ValueError("file_path should be a txt file")
 
         # read txt file
-        df = pd.read_csv(file_path, header=None,
-                         names=["frame", "track_id",
-                                "bb_left", "bb_top", "bb_width", "bb_height",
-                                "confidence", "x", "y", "z"])
+        df = pd.read_csv(
+            file_path,
+            header=None,
+            names=[
+                "frame",
+                "track_id",
+                "bb_left",
+                "bb_top",
+                "bb_width",
+                "bb_height",
+                "confidence",
+                "x",
+                "y",
+                "z",
+            ],
+        )
         # convert to dtype
-        df = df.astype({
-            "frame": int,
-            "track_id": int,
-            "bb_left": float,
-            "bb_top": float,
-            "bb_width": float,
-            "bb_height": float,
-            "confidence": float,
-            "x": int,
-            "y": int,
-            "z": int
-        })
+        df = df.astype(
+            {
+                "frame": int,
+                "track_id": int,
+                "bb_left": float,
+                "bb_top": float,
+                "bb_width": float,
+                "bb_height": float,
+                "confidence": float,
+                "x": int,
+                "y": int,
+                "z": int,
+            }
+        )
 
         # add class_id and class_name
         df["class_id"] = class_id
         df["class_name"] = class_name
 
-        df = df.loc[["frame", "bb_left", "bb_top", "bb_width", "bb_height",
-                     "confidence", "track_id", "class_id", "class_name"]]
+        df = df.loc[
+            [
+                "frame",
+                "bb_left",
+                "bb_top",
+                "bb_width",
+                "bb_height",
+                "confidence",
+                "track_id",
+                "class_id",
+                "class_name",
+            ]
+        ]
 
         return BBoxDetection(df)
 
     def to_mot17(self) -> npt.NDArray:
-        """ return predictions in MOT17 format """
+        """return predictions in MOT17 format"""
         mot_df = self._df.copy()
         mot_df["x"] = -1
         mot_df["y"] = -1
         mot_df["z"] = -1
-        mot_df = mot_df.loc[["frame", "track_id",
-                             "bb_left", "bb_top", "bb_width", "bb_height",
-                             "confidence", "x", "y", "z"]]
+        mot_df = mot_df.loc[
+            [
+                "frame",
+                "track_id",
+                "bb_left",
+                "bb_top",
+                "bb_width",
+                "bb_height",
+                "confidence",
+                "x",
+                "y",
+                "z",
+            ]
+        ]
         return mot_df.to_numpy()
 
     def plot_on(
-            self,
-            video_path: Union[Path, str],
-            output_dir: Optional[Union[Path, str]] = None,
-            first_n_frames: int = -1,
+        self,
+        video_path: Union[Path, str],
+        output_dir: Optional[Union[Path, str]] = None,
+        first_n_frames: int = -1,
     ):
         """plot boxes on video frames"""
         video_path = Path(video_path)
@@ -243,15 +273,18 @@ class BBoxDetection:
         frame_width = int(src_vc.get(cv2.CAP_PROP_FRAME_WIDTH))
         frame_height = int(src_vc.get(cv2.CAP_PROP_FRAME_HEIGHT))
         fourcc = cv2.VideoWriter.fourcc(*"mp4v")
-        out_vc = cv2.VideoWriter(str(output_file), fourcc, fps,
-                                 (frame_width, frame_height))
+        out_vc = cv2.VideoWriter(
+            str(output_file), fourcc, fps, (frame_width, frame_height)
+        )
 
         # check if frames are equal
         n_video_frames = int(src_vc.get(cv2.CAP_PROP_FRAME_COUNT))
         n_pred_frames = self._df["frame"].nunique()
         if n_video_frames != n_pred_frames:
-            tqdm.write(f"Warning: video frames {n_video_frames}, "
-                       f"prediction frames {n_pred_frames}")
+            tqdm.write(
+                f"Warning: video frames {n_video_frames}, "
+                f"prediction frames {n_pred_frames}"
+            )
 
         # create random colors for each object
         n_objects = 200
@@ -266,9 +299,11 @@ class BBoxDetection:
         line_width = 2
 
         # iterate over frames
-        for frame_id, frame in tqdm(enumerate(range(n_video_frames)),
-                                    total=n_video_frames,
-                                    bar_format="{l_bar}{bar:10}{r_bar}"):
+        for frame_id, frame in tqdm(
+            enumerate(range(n_video_frames)),
+            total=n_video_frames,
+            bar_format="{l_bar}{bar:10}{r_bar}",
+        ):
 
             if 0 < first_n_frames <= frame_id:
                 break
@@ -282,8 +317,8 @@ class BBoxDetection:
                 track_id = row["track_id"]
                 color = color_map[track_id % n_objects]
 
-                x, y, w, h = (
-                    row[["bb_left", "bb_top", "bb_width", "bb_height"]].astype(int)
+                x, y, w, h = row[["bb_left", "bb_top", "bb_width", "bb_height"]].astype(
+                    int
                 )
 
                 # TODO: add class_name and confidence
@@ -329,21 +364,21 @@ class BBoxDetection:
 
     @property
     def conf(self) -> npt.NDArray:
-        """ return confidence """
+        """return confidence"""
         return self._df["confidence"].to_numpy()
 
     @property
     def cls_id(self) -> npt.NDArray:
-        """ return class """
+        """return class"""
         return self._df["class_id"].to_numpy()
 
     @property
     def frame_range(self) -> Tuple[int, int]:
-        """ return min and max frame number """
+        """return min and max frame number"""
         return self._df["frame"].min(), self._df["frame"].max()
 
     def at(self, frame: int) -> "BBoxDetection":
-        """ return detections at a specific frame """
+        """return detections at a specific frame"""
         return BBoxDetection(self._df[self._df["frame"].eq(frame)])
 
     def filter_classes(self, classes: Union[List[str], List[int]]) -> "BBoxDetection":

@@ -1,4 +1,5 @@
 """ A tracker class to track bbox detections with YOLOv8-implemented BYTETracker """
+
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
@@ -11,7 +12,8 @@ from bbtrack_yolo.BBoxDetection import BBoxDetection
 
 @dataclass(frozen=True)
 class BYTETrackerConfig:
-    """ Arguments for BYTETracker implementation in YOLOv8 """
+    """Arguments for BYTETracker implementation in YOLOv8"""
+
     track_high_thresh: float = 0.1  # threshold for the first association
     track_low_thresh: float = 0.01  # threshold for the second association
     new_track_thresh: float = 0.1  # threshold for init new track if the detection does
@@ -26,13 +28,14 @@ class BYTETrackerConfig:
 
 
 class Config:
-    """ Pydantic config to allow arbitrary types such as numpy arrays """
+    """Pydantic config to allow arbitrary types such as numpy arrays"""
+
     arbitrary_types_allowed = True
 
 
 @dataclass(config=Config)
 class BYTEDetection:
-    """ Detections in a single frame
+    """Detections in a single frame
     BYTETracker implementation in YOLOv8 expect the following format of detections
     """
 
@@ -42,7 +45,7 @@ class BYTEDetection:
 
 
 class BBTracker:
-    """ A tracker implemented to track the bounding boxes of the detected objects
+    """A tracker implemented to track the bounding boxes of the detected objects
 
     Args:
         config: BYTETrackerConfig, arguments for BYTETracker implementation
@@ -58,39 +61,39 @@ class BBTracker:
     def __init__(self, config: BYTETrackerConfig):
         self.config = config
         self.tracker = BYTETracker(
-            args=config,
-            frame_rate=30  # TODO: get frame rate from video
+            args=config, frame_rate=30  # TODO: get frame rate from video
         )
 
     def track(self, dets: BBoxDetection, reset: bool = True) -> BBoxDetection:
-        """ Track the bounding boxes """
+        """Track the bounding boxes"""
 
         if reset:
             self.tracker.reset()
 
         tracking_results = np.empty((0, 9))
         # convert BBPrediction to BYTEDetection
-        for frame_idx in tqdm(range(dets.frame_range[0], dets.frame_range[1] + 1),
-                              bar_format="{l_bar}{bar:10}{r_bar}",
-                              desc="Tracking"):
+        for frame_idx in tqdm(
+            range(dets.frame_range[0], dets.frame_range[1] + 1),
+            bar_format="{l_bar}{bar:10}{r_bar}",
+            desc="Tracking",
+        ):
             # get detections at the current frame
             frame_dets = dets.at(frame_idx)
 
             # update tracker and obtain tracks
             # (shape (N, 6), (x1, y1, x2, y2, track_id, conf, cls, det_idx_in_frame))
-            tracks = self.tracker.update(results=BYTEDetection(
-                xywh=frame_dets.xywh,
-                conf=frame_dets.conf,
-                cls=frame_dets.cls_id
-            ))
+            tracks = self.tracker.update(
+                results=BYTEDetection(
+                    xywh=frame_dets.xywh, conf=frame_dets.conf, cls=frame_dets.cls_id
+                )
+            )
 
             if tracks.size == 0:
                 continue
 
             # concatenate the frame index to the tracks
             tracks = np.concatenate(
-                [np.full((tracks.shape[0], 1), frame_idx), tracks],
-                axis=1
+                [np.full((tracks.shape[0], 1), frame_idx), tracks], axis=1
             )
 
             # append the tracks to the tracking results
@@ -102,8 +105,17 @@ class BBTracker:
 
         df = pd.DataFrame(
             tracking_results,
-            columns=["frame", "bb_left", "bb_top", "bb_width", "bb_height",
-                     "track_id", "confidence", "class_id", "det_idx_in_frame"]
+            columns=[
+                "frame",
+                "bb_left",
+                "bb_top",
+                "bb_width",
+                "bb_height",
+                "track_id",
+                "confidence",
+                "class_id",
+                "det_idx_in_frame",
+            ],
         )
 
         # remove det_idx_in_frame
@@ -115,9 +127,9 @@ class BBTracker:
 
         # add dummy file_path
         # TODO: what to do with file_path?
-        df['file_path'] = ""
+        df["file_path"] = ""
 
         # add class_name
-        df['class_name'] = df['class_id'].apply(lambda x: dets.cls_id_to_name[x])
+        df["class_name"] = df["class_id"].apply(lambda x: dets.cls_id_to_name[x])
 
         return BBoxDetection(df)
