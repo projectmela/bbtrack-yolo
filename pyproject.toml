@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "bbtrack-yolo"
+version = "0.1.0"
+description = ""
+authors = ["Jonathan Yang <hi@jyang.cc>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "bbtrack_yolo", from = "." }]
+
+[tool.poetry.dependencies]
+python = "^3.9, <3.11"
+torch = "*"
+torchvision = "*"
+ultralytics = "*"
+scikit-learn = "*"
+numpy = "1.21.6"
+loguru = "*"
+tensorboard = "*"
+comet-ml = "*"
+pyarrow = "*"
+labelbox = { extras = ["data"], version = "*" }
+lapx = "*"
+pandera = "*"
+pydantic = "*"
+tqdm = "*"
+matplotlib = ">=3.8.0"
+trackeval = {git = "https://github.com/JonathonLuiten/TrackEval.git", rev = "12c8791b303e0a0b50f753af204249e622d0281a"}
+pycocotools = "^2.0.7"
+tabulate = "^0.9.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.2"
+mypy = "^1.8.0"
+isort = "^5.13.2"
+black = "^24.2.0"
+pandas-stubs = "^2"
+types-tqdm = "^4.66.0.20240106"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

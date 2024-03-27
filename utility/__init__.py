@@ -2,6 +2,13 @@ import os
 from argparse import Namespace
 from datetime import datetime
 
+try:
+    import comet_ml
+except ImportError:
+    print('comet_ml not installed, model training not logged.')
+finally:
+    import torch
+
 from loguru import logger
 
 def cur_dt_str():
