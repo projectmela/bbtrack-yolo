@@ -26,6 +26,15 @@ class BYTETrackerConfig:
     # min_box_area: 10
     # mot20: False # for tracker evaluation(not used for now)
 
+    def __str__(self):
+        return (
+            f"hi={self.track_high_thresh}_"
+            f"lo={self.track_low_thresh}_"
+            f"new={self.new_track_thresh}_"
+            f"buf={self.track_buffer}_"
+            f"match={self.match_thresh}"
+        )
+
 
 class Config:
     """Pydantic config to allow arbitrary types such as numpy arrays"""
