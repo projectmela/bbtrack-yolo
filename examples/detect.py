@@ -2,9 +2,9 @@ from pathlib import Path
 
 from bbtrack_yolo.BBDetecor import BBDetector, BBDetectorConfig
 
-test_video_path = Path("data/0190_0.5s.mp4")
+test_video_path = Path("../tests/data/0190_0.5s.mp4")
 test_model_path = Path(
-    "data/d=mc_dtc2023_m=yolov8n_imgsz=1280_bs=16_20231118-014426/weights/best.pt"
+    "../tests/data/d=mc_dtc2023_m=yolov8n_imgsz=1280_bs=16_20231118-014426/weights/best.pt"
 )
 
 assert test_video_path.exists(), "test_video_path does not exist"

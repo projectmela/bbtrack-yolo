@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from bbtrack_yolo.BBoxDetection import BBoxDetection
 from bbtrack_yolo.BBTracker import BBTracker, BYTETrackerConfig
 
-dets = BBoxDetection.load_from("data/detection.csv")
+dets = BBoxDetection.load_from("../tests/data/detection.csv")
 
 # display the confidence histogram
 dets.confidence_histogram()
