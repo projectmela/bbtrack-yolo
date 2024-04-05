@@ -1,31 +1,36 @@
+import functools
 import itertools
 from multiprocessing import freeze_support
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Dict, Iterable, List, Optional
 
 from tqdm.auto import tqdm
+from tqdm.contrib.concurrent import process_map
 
-from bbtrack_yolo.BBTracker import BYTETrackerConfig, BBTracker
 from bbtrack_yolo.BBoxDetection import BBoxDetection
+from bbtrack_yolo.BBTracker import BBTracker, BYTETrackerConfig
 from bbtrack_yolo.custom_bb2023_mot import CustomBB2023MOT
+from bbtrack_yolo.util import get_default_tqdm_args
 
 split = "train"
 # split = "test"
 # split = "full"
 split_ratio = 0.7
 skip_tested = True
+track_eval_dir = Path(f"data/trackeval/trackers/BB2023/BB2023-{split}")
 
 
 # tracking param options
 def tracking_params() -> Iterable[BYTETrackerConfig]:
     """Generate tracking parameters for tuning"""
 
+    # all options
     param_options = {
-        "track_high_thresh": [0.3, 0.5, 0.7],
-        "track_low_thresh": [0.05, 0.1],
-        "new_track_thresh": [0.05, 0.1],
-        "track_buffer": [15, 30],
-        "match_thresh": [0.6, 0.8],
+        "track_high_thresh": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+        "track_low_thresh": [0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15],
+        "new_track_thresh": [0.1, 0.2, 0.35, 0.5],
+        "track_buffer": [1, 2, 5, 10, 30, 100],
+        "match_thresh": [0.7, 0.75, 0.8, 0.85, 0.9, 0.95],
     }
 
     for values in itertools.product(*param_options.values()):  # type: ignore
@@ -33,9 +38,8 @@ def tracking_params() -> Iterable[BYTETrackerConfig]:
         yield BYTETrackerConfig(**params)
 
 
-def track():
-    # load detections
-    track_eval_dir = Path(f"data/trackeval/trackers/BB2023/BB2023-{split}")
+def get_dets_list() -> List[BBoxDetection]:
+    """Load detections"""
     search_dir = Path(
         "data/"
         "predictions/"
@@ -44,46 +48,78 @@ def track():
     assert search_dir.exists()
     dets_list = [BBoxDetection.load_from(f) for f in search_dir.glob("*/detection.csv")]
     assert dets_list
+    return dets_list
 
-    # tracking
-    for params in tqdm(
-        list(tracking_params()), desc="Param", bar_format="{l_bar}{bar:10}{r_bar}"
-    ):
-        tracker_name = f"{params}"
-        for dets in tqdm(
-            dets_list, desc="Tracking", bar_format="{l_bar}{bar:10}{r_bar}", leave=False
-        ):
-            # save to track eval folder
-            seq_name = dets.folder.name[16:]
 
-            tracker = BBTracker(config=params)
-            track_eval_dest = track_eval_dir / f"{tracker_name}/data/{seq_name}.txt"
-            if skip_tested and track_eval_dest.exists():
+def track_dets_with_params(
+    tracking_param: BYTETrackerConfig,
+    dets_list: List[BBoxDetection],
+    tqdm_args: Optional[Dict[str, Any]] = None,
+    progress_bar: bool = True,
+    verbose: bool = True,
+):
+    """Track detections with given parameters"""
+
+    tqdm_args = get_default_tqdm_args(tqdm_args)
+    loop = dets_list
+    if progress_bar:
+        # TODO: report mypy error to tqdm
+        loop = tqdm(  # type: ignore
+            iterable=dets_list,
+            **tqdm_args,
+        )
+
+    for dets in loop:
+        # save to track eval folder
+        assert dets.folder is not None, "Detection folder is not set"
+        seq_name = dets.folder.name[16:]
+
+        tracker = BBTracker(config=tracking_param)
+        track_eval_dest = track_eval_dir / f"{tracking_param}/data/{seq_name}.txt"
+        if skip_tested and track_eval_dest.exists():
+            if verbose:
                 tqdm.write(
-                    f"Skipping {dets.folder.name} with {params} since"
+                    f"Skipping {dets.folder.name} with {tracking_param} since"
                     f" it has been tested (found '{track_eval_dest}')."
                 )
-                continue
+            continue
 
-            max_frame = dets.frame_range[1]
-            split_frame = round(max_frame * split_ratio)
+        max_frame = dets.frame_range[1]
+        split_frame = round(max_frame * split_ratio)
 
-            tqdm.write(f"Tracking {dets.folder.name} with {params}")
-            if split == "train":
-                trks = tracker.track(dets[:split_frame])
-            elif split == "test":
-                trks = tracker.track(dets[split_frame:])
-            else:
-                trks = tracker.track(dets)
+        if verbose:
+            tqdm.write(f"Tracking {dets.folder.name} with {tracking_param}")
+        # split detections by train/test
+        if split == "train":
+            trks = tracker.track(dets[:split_frame], progress_bar=False)
+        elif split == "test":
+            trks = tracker.track(dets[split_frame:], progress_bar=False)
+        else:
+            trks = tracker.track(dets, progress_bar=False)
 
-            assert dets.folder is not None
+        assert dets.folder is not None
 
-            # save to prediction folder
-            trks.save_to(
-                dets.folder / f"track_{split}/{params}.parquet", overwrite=True
-            )
+        # save to prediction folder
+        # trks.save_to(
+        #     dets.folder / f"track_{split}/{tracking_param}.parquet", overwrite=True
+        # )
 
-            trks.save_to_mot17(track_eval_dest, overwrite=True)
+        # save to TrackEval folder
+        trks.save_to_mot17(track_eval_dest, overwrite=True)
+
+
+def batch_track(
+    tracking_params: List[BYTETrackerConfig],
+    n_proc: int = 1,
+):
+    """Batch track with multiprocessing"""
+    dets_list = get_dets_list()
+
+    single_proc_func = functools.partial(
+        track_dets_with_params, dets_list=dets_list, progress_bar=False, verbose=False
+    )
+
+    process_map(single_proc_func, tracking_params, max_workers=n_proc, chunksize=1)
 
 
 def eval():
@@ -110,8 +146,8 @@ def eval():
 
 
 if __name__ == "__main__":
-    track()
-
     freeze_support()
+
+    batch_track(list(tracking_params()), n_proc=64)
 
     eval()
