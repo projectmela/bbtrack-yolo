@@ -28,7 +28,7 @@ def tracking_params() -> Iterable[BYTETrackerConfig]:
     param_options = {
         "track_high_thresh": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
         "track_low_thresh": [0.01, 0.02, 0.03, 0.04, 0.05, 0.1, 0.15],
-        "new_track_thresh": [0.1, 0.2, 0.35, 0.5],
+        "new_track_thresh": [0.1, 0.2, 0.35, 0.5, 0.6, 0.7, 0.8],
         "track_buffer": [1, 2, 5, 10, 30, 100],
         "match_thresh": [0.7, 0.75, 0.8, 0.85, 0.9, 0.95],
     }
@@ -148,6 +148,6 @@ def eval():
 if __name__ == "__main__":
     freeze_support()
 
-    batch_track(list(tracking_params()), n_proc=64)
+    batch_track(list(tracking_params()), n_proc=58)
 
     eval()
