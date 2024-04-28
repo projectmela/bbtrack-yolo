@@ -22,7 +22,7 @@ labelbox = { extras = ["data"], version = "*" }
 lapx = "*"
 pandera = "*"
 pydantic = "*"
-tqdm = "*"
+tqdm = ">=4.66"
 matplotlib = ">=3.8.0"
 trackeval = {git = "https://github.com/JonathonLuiten/TrackEval.git", rev = "12c8791b303e0a0b50f753af204249e622d0281a"}
 pycocotools = "^2.0.7"

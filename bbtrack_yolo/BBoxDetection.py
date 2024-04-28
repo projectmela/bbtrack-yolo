@@ -76,7 +76,12 @@ class BBoxDetection:
     # 2. remove validate method
     # 3. add decorators to the methods: @pa.check_types
 
-    def __init__(self, df: pd.DataFrame):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        name: Optional[str] = None,
+        folder: Optional[Path] = None,
+    ):
         BBoxDetectionSchema.validate(df)
         self._df = df.copy()
 
@@ -88,37 +93,63 @@ class BBoxDetection:
             .to_dict()
         )
 
-    def save_to(self, save_dir: Union[Path, str], csv: bool = False):
+        self.name = name
+        self.folder = folder
+
+    def __getitem__(self, key):
+        """return a BBoxDetection object for a specific frame or between frames"""
+        if isinstance(key, slice):
+            if key.start is None and key.stop is None:
+                return BBoxDetection(self._df)
+            elif key.start is None:
+                return BBoxDetection(self._df[self._df["frame"].le(key.stop)])
+            elif key.stop is None:
+                return BBoxDetection(self._df[self._df["frame"].ge(key.start)])
+            else:
+                return BBoxDetection(
+                    self._df[self._df["frame"].between(key.start, key.stop)]
+                )
+        else:
+            return BBoxDetection(self._df[self._df["frame"].eq(key)])
+
+    def __len__(self):
+        return len(self._df)
+
+    def save_to(
+        self, save_path: Union[Path, str], csv: bool = False, overwrite: bool = False
+    ):
         """save predictions as a parquet DataFrame file in the given directory
 
         Args:
-            save_dir (Union[Path, str]): directory to save the file
+            save_path (Union[Path, str]): path save the file
             csv (bool): save an extra csv file for human-readable format
+            overwrite (bool): overwrite the file if exists
         """
-
-        save_dir = Path(save_dir)
-
-        if not save_dir.exists():
-            save_dir.mkdir(parents=True)
-        elif not save_dir.is_dir():
-            raise ValueError("save_dir should be a directory")
 
         # not tracked if track_id all equal to -1, indicate in file name
         tracked = not self._df["track_id"].eq(-1).all()
 
-        if tracked:
-            file_name = "tracking.parquet"
+        # compute save path and save dir
+        save_path = Path(save_path)
+        if save_path.is_dir():
+            save_dir = save_path
+            if tracked:
+                save_path = save_dir / "tracking.parquet"
+            else:
+                save_path = save_dir / "detection.parquet"
+        elif save_path.suffix in [".parquet", ".csv"]:
+            save_dir = save_path.parent
         else:
-            file_name = "detection.parquet"
+            raise ValueError("save_path should be a directory or a parquet/csv file")
+        save_dir.mkdir(parents=True, exist_ok=True)
 
-        # save parquet file
-        file_path = save_dir / file_name
-        self._df.to_parquet(file_path)
-
-        # save extra csv file if needed
-        if csv:
-            file_path_csv = file_path.with_suffix(".csv")
-            self._df.to_csv(file_path_csv, index=False, header=True)
+        # save file
+        if save_path.exists() and not overwrite:
+            raise FileExistsError(f"{save_path} already exists")
+        elif save_path.suffix == ".parquet":
+            self._df.to_parquet(save_path)
+        elif save_path.suffix == ".csv" or csv is True:
+            self._df.to_csv(save_path.with_suffix(".csv"), index=False, header=True)
 
     @staticmethod
     def load_from(file_path: Union[Path, str]) -> "BBoxDetection":
@@ -142,23 +173,24 @@ class BBoxDetection:
         else:
             raise ValueError("file_path should be a parquet or csv file")
 
-        return BBoxDetection(df=df)
+        return BBoxDetection(df=df, folder=file_path.parent)
 
-    def save_to_mot17(self, file_path: Union[Path, str]):
+    def save_to_mot17(self, file_path: Union[Path, str], overwrite: bool = False):
         """save to MOT17 format"""
 
         file_path = Path(file_path)
 
         if file_path.is_dir():
             file_path /= "mot17.txt"
-        elif file_path.exists():
+        elif file_path.exists() and not overwrite:
             raise FileExistsError(f"{file_path} already exists")
-        elif file_path.suffix != ".txt":
+
+        if file_path.suffix != ".txt":
             raise ValueError("file_path should be a txt file")
 
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        self.to_mot17().tofile(file_path, sep=",", format="%s")
+        self.to_mot17().to_csv(file_path, sep=",", index=False, header=False)
 
     @staticmethod
     def load_from_mot17(
@@ -229,13 +261,14 @@ class BBoxDetection:
 
         return BBoxDetection(df)
 
-    def to_mot17(self) -> npt.NDArray:
+    def to_mot17(self) -> pd.DataFrame:
         """return predictions in MOT17 format"""
         mot_df = self._df.copy()
         mot_df["x"] = -1
         mot_df["y"] = -1
         mot_df["z"] = -1
         mot_df = mot_df.loc[
+            :,
             [
                 "frame",
                 "track_id",
@@ -247,9 +280,14 @@ class BBoxDetection:
                 "x",
                 "y",
                 "z",
-            ]
+            ],
         ]
-        return mot_df.to_numpy()
+
+        # if frame starts with 0, all frames +1
+        if mot_df["frame"].min() == 0:
+            mot_df["frame"] += 1
+            tqdm.write("Warning: frame starts with 0, all frames +1")
+        return mot_df
 
     def plot_on(
         self,
@@ -375,7 +413,7 @@ class BBoxDetection:
     @property
     def frame_range(self) -> Tuple[int, int]:
         """return min and max frame number"""
-        return self._df["frame"].min(), self._df["frame"].max()
+        return int(self._df["frame"].min()), int(self._df["frame"].max())
 
     def at(self, frame: int) -> "BBoxDetection":
         """return detections at a specific frame"""

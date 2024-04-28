@@ -14,7 +14,7 @@ tracker_config = BYTETrackerConfig(
     # threshold for the first association
     track_high_thresh=0.5,
     # threshold for the second association
-    track_low_thresh=0.1,
+    track_low_thresh=0.03,
     # threshold for init new track if the detection does not match any tracks
     new_track_thresh=0.1,
     # buffer to calculate the time when to remove tracks

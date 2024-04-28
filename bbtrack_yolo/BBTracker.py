@@ -14,17 +14,26 @@ from bbtrack_yolo.BBoxDetection import BBoxDetection
 class BYTETrackerConfig:
     """Arguments for BYTETracker implementation in YOLOv8"""
 
-    track_high_thresh: float = 0.1  # threshold for the first association
-    track_low_thresh: float = 0.01  # threshold for the second association
+    track_high_thresh: float = 0.5  # threshold for the first association
+    track_low_thresh: float = 0.03  # threshold for the second association
     new_track_thresh: float = 0.1  # threshold for init new track if the detection does
     # not match any tracks
 
     track_buffer: int = 30  # buffer to calculate the time when to remove tracks
-    match_thresh: float = 0.8  # threshold for matching tracks
+    match_thresh: float = 0.85  # threshold for matching tracks
 
     # threshold for min box areas (for tracker evaluation, not used for now)
     # min_box_area: 10
     # mot20: False # for tracker evaluation(not used for now)
+
+    def __str__(self):
+        return (
+            f"hi={self.track_high_thresh}_"
+            f"lo={self.track_low_thresh}_"
+            f"new={self.new_track_thresh}_"
+            f"buf={self.track_buffer}_"
+            f"match={self.match_thresh}"
+        )
 
 
 class Config:
@@ -64,21 +73,31 @@ class BBTracker:
             args=config, frame_rate=30  # TODO: get frame rate from video
         )
 
-    def track(self, dets: BBoxDetection, reset: bool = True) -> BBoxDetection:
+    def track(
+        self,
+        dets: BBoxDetection,
+        reset: bool = True,
+        progress_bar: bool = True,
+    ) -> BBoxDetection:
         """Track the bounding boxes"""
 
         if reset:
             self.tracker.reset()
 
         tracking_results = np.empty((0, 9))
+
+        loop = range(dets.frame_range[0], dets.frame_range[1] + 1)
+        if progress_bar:
+            loop = tqdm(
+                iterable=loop,
+                desc="Tracking",
+                bar_format="{l_bar}{bar:10}{r_bar}",
+            )
+
         # convert BBPrediction to BYTEDetection
-        for frame_idx in tqdm(
-            range(dets.frame_range[0], dets.frame_range[1] + 1),
-            bar_format="{l_bar}{bar:10}{r_bar}",
-            desc="Tracking",
-        ):
+        for frame_idx in loop:
             # get detections at the current frame
-            frame_dets = dets.at(frame_idx)
+            frame_dets = dets.at(frame=frame_idx)
 
             # update tracker and obtain tracks
             # (shape (N, 6), (x1, y1, x2, y2, track_id, conf, cls, det_idx_in_frame))
