@@ -30,7 +30,7 @@ def parallel_track_dets_with_config(
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--video_dir", type=str, default="data/videos")
+parser.add_argument("--video_dir", type=str, default="videos")
 parser.add_argument("--model_path", type=str, default="nano_bb.pt")
 if __name__ == "__main__":
     args = parser.parse_args()

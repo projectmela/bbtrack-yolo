@@ -4,7 +4,7 @@ from bbtrack_yolo.BBDetecor import BBDetector, BBDetectorConfig
 
 model_path = Path("nano_bb.pt")
 
-video_dir = Path("data/videos")
+video_dir = Path("videos")
 video_paths = list(video_dir.glob("*.[mM][pP]4"))
 
 print("Found video files:")
