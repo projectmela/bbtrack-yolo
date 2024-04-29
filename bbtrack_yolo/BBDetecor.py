@@ -94,7 +94,8 @@ class BBDetectorConfig:
             # a model path, generate model_name in inference case
             return Path(self.model).parent.parent.name
         else:
-            raise ValueError(f"Unable to give model_name for current config {self=}.")
+            # use filename of the weight file as model name
+            return Path(self.model).stem
 
     @property
     def model_train_param_str(self) -> str:
