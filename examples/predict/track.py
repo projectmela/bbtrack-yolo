@@ -1,15 +1,17 @@
 import matplotlib.pyplot as plt
 
-from bbtrack_yolo.BBoxDetection import BBoxDetection
 from bbtrack_yolo.BBTracker import BBTracker, BYTETrackerConfig
+from bbtrack_yolo.BBoxDetection import BBoxDetection
 
-dets = BBoxDetection.load_from("../tests/data/detection.csv")
+# load detections
+dets = BBoxDetection.load_from("../../tests/data/detection.csv")
 
 # display the confidence histogram
 dets.confidence_histogram()
 # save the image
 plt.savefig("data/confidence_histogram.png")
 
+# create tracker config
 tracker_config = BYTETrackerConfig(
     # threshold for the first association
     track_high_thresh=0.5,
@@ -23,8 +25,14 @@ tracker_config = BYTETrackerConfig(
     match_thresh=0.8,
 )
 
+# create tracker
 tracker = BBTracker(config=BYTETrackerConfig())
 
+# track detections
 trks = tracker.track(dets)
 
-trks.plot_on("data/0190_0.5s.mp4")
+# save tracks
+trks.save_to("../../tests/data/tracks.csv")
+
+# plot predictions on video
+# trks.plot_on("data/0190_0.5s.mp4")

@@ -29,7 +29,14 @@ for vp in video_paths:
     print(f"processing {vp=}")
 
     # get detections
-    dets = detector.detect(vp)
+    dets, dets_path = detector.detect(vp)
+
+    # optional: do tracking with detections;
+    # suggestion: do tracking in parallel later with batch_track.py
+    # tracker = BBTracker(config=BYTETrackerConfig())
+    # trks = tracker.track(dets)
+    # trks.save_to(dets_path.parent / "tracks.csv")
 
     # plot predictions on video
     # dets.plot_on(vp)
+    # trks.plot_on(vp)

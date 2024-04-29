@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pandera as pa
+from pandera import typing as pat
 from matplotlib.axes import Axes
 from numpy import typing as npt
 from tqdm.asyncio import tqdm
@@ -16,7 +17,7 @@ from tqdm.asyncio import tqdm
 class BBoxDetectionSchema(pa.DataFrameModel):
     """BBoxDetection Schema"""
 
-    file_path: str
+    file_path: pat.Series[str] = pa.Field(nullable=True)
     frame: int
     bb_left: float
     bb_top: float

@@ -7,7 +7,6 @@ from functools import cached_property
 from pathlib import Path
 from typing import List, Optional, Union
 
-import pandas as pd
 import torch
 from pydantic import Field, field_validator
 from pydantic.dataclasses import dataclass
@@ -208,7 +207,7 @@ class BBDetector:
         with open(f"models/{self.config.name}/processed_eval.json", "w") as f:
             json.dump(model_eval_results, f)
 
-    def detect(self, source: Union[str, Path]) -> BBoxDetection:
+    def detect(self, source: Union[str, Path]) -> (BBoxDetection, Path):
         """detect bounding boxes from source"""
         model_name = self.config.model_name
         source_name = Path(source).stem
@@ -236,8 +235,7 @@ class BBDetector:
         )
 
         # convert the written result from csv to BBPrediction
-        result_df = pd.read_csv(csv_path)
-        return BBoxDetection(result_df)
+        return BBoxDetection.load_from(csv_path), csv_path
 
     def _stream_write_predictions(
         self,
