@@ -31,22 +31,14 @@ def parallel_track_dets_with_config(
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--video_dir", type=str, default="data/videos")
+parser.add_argument("--model_path", type=str, default="nano_bb.pt")
 if __name__ == "__main__":
     args = parser.parse_args()
-
-    # set paths
-    model_path = Path(
-        "/abyss/home/localcode/bb-yolo/"
-        "models/models_20231219_ontology/"
-        "d=mc_dtc2023_gd-shadow_o=gd-shadow_m=yolov8m_imgsz=5472_bs=1_"
-        "20231219-054003/"
-        "weights/best.pt"
-    )
-
     video_dir = Path(args.video_dir)
+    model_path = Path(args.model_path)
     video_paths = list(video_dir.glob("*.[mM][pP]4"))
 
-    # print file info
+    # print video files info
     print("Found video files:")
     print("\n".join([str(vp) for vp in video_paths]))
 

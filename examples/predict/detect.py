@@ -2,13 +2,7 @@ from pathlib import Path
 
 from bbtrack_yolo.BBDetecor import BBDetector, BBDetectorConfig
 
-model_path = Path(
-    "/abyss/home/localcode/bb-yolo/"
-    "models/models_20231219_ontology/"
-    "d=mc_dtc2023_gd-shadow_o=gd-shadow_m=yolov8m_imgsz=5472_bs=1_"
-    "20231219-054003/"
-    "weights/best.pt"
-)
+model_path = Path("nano_bb.pt")
 
 video_dir = Path("data/videos")
 video_paths = list(video_dir.glob("*.[mM][pP]4"))
