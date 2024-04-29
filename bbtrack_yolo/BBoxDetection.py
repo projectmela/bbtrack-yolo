@@ -340,6 +340,7 @@ class BBoxDetection:
         # iterate over frames
         for frame_id, frame in tqdm(
             enumerate(range(n_video_frames)),
+            desc="Plotting",
             total=n_video_frames,
             bar_format="{l_bar}{bar:10}{r_bar}",
         ):
