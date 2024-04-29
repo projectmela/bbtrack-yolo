@@ -1,4 +1,0 @@
-examples/predict/nano_bb.pt filter=lfs diff=lfs merge=lfs -text
-examples/predict/data/videos/0312_5s.mp4 filter=lfs diff=lfs merge=lfs -text
-examples/predict/data/videos/0190_5s.mp4 filter=lfs diff=lfs merge=lfs -text
-examples/predict/data/videos/0158_5s.mp4 filter=lfs diff=lfs merge=lfs -text
