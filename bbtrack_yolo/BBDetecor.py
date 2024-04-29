@@ -14,7 +14,7 @@ from tqdm.auto import tqdm
 from ultralytics import YOLO  # type: ignore
 
 from bbtrack_yolo.BBoxDetection import BBoxDetection
-from utility import cur_dt_str
+from .util import cur_dt_str
 
 
 @dataclass(frozen=True)
