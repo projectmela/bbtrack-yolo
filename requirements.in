@@ -5,7 +5,7 @@ ultralytics
 scikit-learn
 loguru
 tensorboard
-comet_ml
+comet-ml
 pyarrow
 labelbox[data]
 lapx
