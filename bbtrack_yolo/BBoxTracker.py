@@ -2,9 +2,10 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
-from bbtrack_yolo.BBoxDetection import BBoxDetection
 from boxmot import BYTETracker, OCSORT, BoTSORT, HybridSORT, StrongSORT
 from tqdm.auto import trange
+
+from bbtrack_yolo.BBoxDetection import BBoxDetection
 
 
 class BBoxTracker:
@@ -20,6 +21,56 @@ class BBoxTracker:
 
         self._tracker = tracker
         self._empty_img = np.empty((frame_height, frame_width, 3), dtype=np.uint8)
+
+    def __str__(self):
+        tracker_cls_name = self._tracker.__class__.__name__
+        if tracker_cls_name == "BYTETracker":
+            tracker_name = "BYTE"
+            # trker = self._tracker
+            # param_str = (
+            #     f"{tracker_name}"
+            #     f"-trk_th={trker.track_thresh}"
+            #     f"-match_th={trker.match_thresh}"
+            #     f"-buf={trker.track_buffer}"
+            # )
+            return tracker_name
+        elif tracker_cls_name == "OCSORT":
+            tracker_name = "OCST"
+            # trker = self._tracker
+            # param_str = (
+            #     f"{tracker_name}"
+            #     f"-det_thresh={trker.det_thresh}"
+            #     f"-max_age={trker.max_age}"
+            #     f"-min_hits={trker.min_hits}"
+            #     f"-asso_th={trker.asso_threshold}"
+            #     f"-delta_t={trker.delta_t}"
+            #     f"-inertia={trker.inertia}"
+            #     f"-use_bytes={trker.use_byte}"
+            # )
+            return tracker_name
+        elif tracker_cls_name == "BoTSORT":
+            tracker_name = "BoTST"
+            # trker = self._tracker
+            # param_str = (
+            #     f"{tracker_name}"
+            #     f"-h={trker.track_high_thresh}"
+            #     f"-l={trker.track_low_thresh}"
+            #     f"-new={trker.new_track_thresh}"
+            #     f"-mat={trker.match_thresh}"
+            #     f"-buf={trker.track_buffer}"
+            #     f"-prox={trker.proximity_thresh}"
+            #     f"-appear={trker.appearance_thresh}"
+            # )
+            return tracker_name
+        elif tracker_cls_name == "HybridSORT":
+            tracker_name = "HyST"
+            return tracker_name
+        elif tracker_cls_name == "StrongSORT":
+            tracker_name = "StST"
+            return tracker_name
+        else:
+            tracker_name = tracker_cls_name
+            return tracker_name
 
     def track(
         self,
