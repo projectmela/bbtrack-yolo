@@ -8,25 +8,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pandera as pa
-from pandera import typing as pat
 from matplotlib.axes import Axes
 from numpy import typing as npt
+from pandas.api.types import is_numeric_dtype
+from pandera import typing as pat
 from tqdm.asyncio import tqdm
 
-
+is_number = pa.Check(is_numeric_dtype, name="is_number")
 class BBoxDetectionSchema(pa.DataFrameModel):
     """BBoxDetection Schema"""
 
     file_path: pat.Series[str] = pa.Field(nullable=True)
-    frame: int
-    bb_left: float
-    bb_top: float
-    bb_width: float
-    bb_height: float
-    confidence: float
-    track_id: int
-    class_id: float
-    class_name: str
+    frame: pat.Series[int] = pa.Field(ge=0, coerce=True)
+    bb_left: pat.Series = pa.Field(ge=0, coerce=True)
+    bb_top: pat.Series = pa.Field(ge=0, coerce=True)
+    bb_width: pat.Series = pa.Field(ge=0, coerce=True)
+    bb_height: pat.Series = pa.Field(ge=0, coerce=True)
+    confidence: pat.Series[float] = pa.Field(ge=0, le=1, coerce=True)
+    track_id: pat.Series[int] = pa.Field(ge=-1, coerce=True)
+    class_id: pat.Series[int] = pa.Field(ge=0, coerce=True)
+    class_name: pat.Series[str] = pa.Field(nullable=True)
 
 
 class BBoxDetection:
