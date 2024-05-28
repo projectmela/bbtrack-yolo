@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -7,13 +7,17 @@ from tqdm.auto import trange
 
 from bbtrack_yolo.BBoxDetection import BBoxDetection
 
+TrackerType = TypeVar(
+    "TrackerType", BYTETracker, OCSORT, BoTSORT, HybridSORT, StrongSORT
+)
+
 
 class BBoxTracker:
     """A wrapper class built on top of trackers from BoxMOT implementation"""
 
     def __init__(
         self,
-        tracker: Union[BYTETracker, OCSORT, BoTSORT, HybridSORT, StrongSORT],
+        tracker: TrackerType,
         frame_width: int = 5472,
         frame_height: int = 3078,
     ):
@@ -29,7 +33,7 @@ class BBoxTracker:
             # trker = self._tracker
             # param_str = (
             #     f"{tracker_name}"
-            #     f"-trk_th={trker.track_thresh}"
+            #     f"-h={trker.track_thresh}" # low th forced to 0.1
             #     f"-match_th={trker.match_thresh}"
             #     f"-buf={trker.track_buffer}"
             # )
@@ -95,10 +99,10 @@ class BBoxTracker:
 
             # Update tracker and get tracks with dets: (x, y, x, y, conf, cls)
             tracks = self._tracker.update(
-                dets=dets,
+                dets,
                 # Use a dummy empty image since we don't need plot
                 # but have to pass frame dimension information
-                img=self._empty_img,
+                self._empty_img,
             )  # => (n, 8) as (x, y, x, y, id, conf, cls, ind)
 
             if tracks.size == 0:
