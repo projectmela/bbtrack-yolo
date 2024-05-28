@@ -114,6 +114,11 @@ class BBoxDetection:
         else:
             return BBoxDetection(self._df[self._df["frame"].eq(key)])
 
+    @property
+    def max_frame(self) -> int:
+        """return the maximum frame number"""
+        return self._df["frame"].max()
+
     def __len__(self):
         return len(self._df)
 
@@ -394,6 +399,16 @@ class BBoxDetection:
         ltrb["bb_width"] += ltrb["bb_left"]
         ltrb["bb_height"] += ltrb["bb_top"]
         return ltrb.to_numpy()
+
+    @property
+    def ltrb_conf_clsid(self):
+        """return bboxes in ltrb (x1, y1, x2, y2) format with confidence and class_id"""
+        ltrbcc = self._df[
+            ["bb_left", "bb_top", "bb_width", "bb_height", "confidence", "class_id"]
+        ].copy()
+        ltrbcc["bb_width"] += ltrbcc["bb_left"]
+        ltrbcc["bb_height"] += ltrbcc["bb_top"]
+        return ltrbcc.to_numpy()
 
     @property
     def xywh(self) -> npt.NDArray:
