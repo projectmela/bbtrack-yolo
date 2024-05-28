@@ -1,11 +1,14 @@
 """ A tracker class to track bbox detections with YOLOv8-implemented BYTETracker """
 
+from typing import Union
+
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from pydantic.dataclasses import dataclass
 from tqdm.auto import tqdm
 from ultralytics.trackers.byte_tracker import BYTETracker  # type: ignore
+from ultralytics.trackers.bot_sort import BOTSORT  # type: ignore
 
 from bbtrack_yolo.BBoxDetection import BBoxDetection
 
@@ -152,3 +155,47 @@ class BBTracker:
         df["class_name"] = df["class_id"].apply(lambda x: dets.cls_id_to_name[x])
 
         return BBoxDetection(df)
+
+
+@dataclass(frozen=True)
+class BotSortTrackerConfig(BYTETrackerConfig):
+    """Arguments for BYTETracker implementation in YOLOv8"""
+
+    # BoT-SORT settings
+    gmc_method = "sparseOptFlow"  # method of global motion compensation
+    # ReID model related thresh (not supported yet)
+    proximity_thresh = 0.5
+    appearance_thresh = 0.25
+    with_reid = False
+
+    def __str__(self):
+        return (
+            "bot_sort_"
+            f"hi={self.track_high_thresh}_"
+            f"lo={self.track_low_thresh}_"
+            f"new={self.new_track_thresh}_"
+            f"buf={self.track_buffer}_"
+            f"match={self.match_thresh}"
+        )
+
+
+class BBBotSortTracker(BBTracker):
+    """A tracker implemented to track the bounding boxes of the detected objects
+
+    Args:
+        config: BYTETrackerConfig, arguments for BYTETracker implementation
+
+    Attributes:
+        config(BotSortTrackerConfig): arguments for BYTETracker implementation
+        tracker(BOTSORT): BYTETracker implementation in YOLOv8
+
+    Methods:
+        track(dets: BBoxDetection) -> BBoxDetection: Track the bounding boxes
+    """
+
+    def __init__(self, config: BotSortTrackerConfig):
+        super().__init__(config)
+        self.config = config
+        self.tracker = BOTSORT(
+            args=config, frame_rate=30  # TODO: get frame rate from video
+        )
