@@ -1,4 +1,4 @@
-numpy==1.21.6
+numpy==1.24.4
 torch
 torchvision
 ultralytics
@@ -12,3 +12,5 @@ lapx
 pandera
 pydantic
 tqdm>=4.66.0
+boxmot
+trackeval @ git+https://github.com/TraseeHQ/TrackEval.git@6e5bf4864329a1202dd147f1aea705d2b485a75f
