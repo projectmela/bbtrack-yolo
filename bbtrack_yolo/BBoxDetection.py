@@ -15,15 +15,18 @@ from pandera import typing as pat
 from tqdm.asyncio import tqdm
 
 is_number = pa.Check(is_numeric_dtype, name="is_number")
+
+
 class BBoxDetectionSchema(pa.DataFrameModel):
     """BBoxDetection Schema"""
 
     file_path: pat.Series[str] = pa.Field(nullable=True)
     frame: pat.Series[int] = pa.Field(ge=0, coerce=True)
-    bb_left: pat.Series = pa.Field(ge=0, coerce=True)
-    bb_top: pat.Series = pa.Field(ge=0, coerce=True)
-    bb_width: pat.Series = pa.Field(ge=0, coerce=True)
-    bb_height: pat.Series = pa.Field(ge=0, coerce=True)
+    # TODO: soft check (warning) when bbox values are less than 0
+    bb_left: pat.Series = pa.Field(ge=-500, coerce=True)
+    bb_top: pat.Series = pa.Field(ge=-500, coerce=True)
+    bb_width: pat.Series = pa.Field(ge=-500, coerce=True)
+    bb_height: pat.Series = pa.Field(ge=-500, coerce=True)
     confidence: pat.Series[float] = pa.Field(ge=0, le=1, coerce=True)
     track_id: pat.Series[int] = pa.Field(ge=-1, coerce=True)
     class_id: pat.Series[int] = pa.Field(ge=0, coerce=True)
@@ -113,6 +116,14 @@ class BBoxDetection:
                 )
         else:
             return BBoxDetection(self._df[self._df["frame"].eq(key)])
+
+    def filter_invalid_boxes(self):
+        """remove boxes that have width or height less than or equal 0.6
+        (which is croppable in ReID phase)"""
+        self._df = self._df[
+            ((self._df["bb_width"] > 0.6) & (self._df["bb_height"] > 0.6))
+        ].copy()
+        return self
 
     @property
     def max_frame(self) -> int:

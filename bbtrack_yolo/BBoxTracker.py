@@ -20,11 +20,13 @@ class BBoxTracker:
         tracker: TrackerType,
         frame_width: int = 5472,
         frame_height: int = 3078,
+        reid_model_name: str = "",
     ):
         """Initialize the tracker"""
 
         self._tracker = tracker
-        self._empty_img = np.empty((frame_height, frame_width, 3), dtype=np.uint8)
+        self._empty_img = np.zeros((frame_height, frame_width, 3), dtype=np.uint8)
+        self._reid_model_name = reid_model_name
 
     def __str__(self):
         tracker_cls_name = self._tracker.__class__.__name__
@@ -54,7 +56,9 @@ class BBoxTracker:
             return tracker_name
         elif tracker_cls_name == "BoTSORT":
             tracker_name = "BoTST"
-            # trker = self._tracker
+            trker = self._tracker
+            if trker.with_reid:
+                tracker_name += f"_reid={self._reid_model_name}"
             # param_str = (
             #     f"{tracker_name}"
             #     f"-h={trker.track_high_thresh}"
@@ -68,9 +72,13 @@ class BBoxTracker:
             return tracker_name
         elif tracker_cls_name == "HybridSORT":
             tracker_name = "HyST"
+            if self._tracker.with_reid:
+                tracker_name += f"_reid={self._reid_model_name}"
             return tracker_name
         elif tracker_cls_name == "StrongSORT":
             tracker_name = "StST"
+            if self._tracker.with_reid:
+                tracker_name += f"_reid={self._reid_model_name}"
             return tracker_name
         else:
             tracker_name = tracker_cls_name
@@ -97,13 +105,30 @@ class BBoxTracker:
             # Get detections at the current frame
             dets = all_dets.at(frame=frame_idx).ltrb_conf_clsid
 
-            # Update tracker and get tracks with dets: (x, y, x, y, conf, cls)
-            tracks = self._tracker.update(
-                dets,
-                # Use a dummy empty image since we don't need plot
-                # but have to pass frame dimension information
-                self._empty_img,
-            )  # => (n, 8) as (x, y, x, y, id, conf, cls, ind)
+            try:
+                # Update tracker and get tracks with dets: (x, y, x, y, conf, cls)
+                tracks = self._tracker.update(
+                    dets,
+                    # Use a dummy empty image since we don't need plot
+                    # but have to pass frame dimension information
+                    self._empty_img,
+                )  # => (n, 8) as (x, y, x, y, id, conf, cls, ind)
+            except Exception as e:
+                print(f"Error at frame {frame_idx}: {e}")
+                # convert dets to df
+                df = pd.DataFrame(
+                    dets,
+                    columns=[
+                        "bb_left",
+                        "bb_top",
+                        "bb_right",
+                        "bb_bottom",
+                        "confidence",
+                        "class_id",
+                    ],
+                )
+                print(f"\n{df.to_markdown()}\n")
+                raise e
 
             if tracks.size == 0:
                 continue

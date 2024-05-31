@@ -56,6 +56,9 @@ def track_dets_with_tracker(
         seq_name = dets_path.parent.name[len("YYYYMMDD-HHMMSS_") :]
         # Load detections
         dets = BBoxDetection.load_from(dets_path)
+        # Remove boxes that have width or height less than 0
+        dets = dets.filter_invalid_boxes()
+
         # Setup save path
         result_file_path = trackers_split_dir / f"{tracker_name}/data/{seq_name}.txt"
         result_file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -131,35 +134,63 @@ if __name__ == "__main__":
     print(f"Found {len(dets_paths)} detection files")
     print("\n".join(map(str, dets_paths)))
 
-    track_methods_list = [
-        BYTETracker(),
-        OCSORT(),
-        BoTSORT(
-            model_weights=None,
-            device="cpu",
-            fp16=False,
-            with_reid=False,
+    # TODO: DEBUG: only keep 0176.seg_1
+    # dets_paths = [p for p in dets_paths if "0176.seg_1" in p.parent.name]
+
+    trackers_list = [
+        # trackers without reid
+        BBoxTracker(BYTETracker()),
+        BBoxTracker(OCSORT()),
+        BBoxTracker(
+            BoTSORT(
+                model_weights=None,
+                device="cpu",
+                fp16=False,
+                with_reid=False,
+            )
         ),
-        # BoTSORT(
-        #     model_weights="resnet50",
-        #     device="cuda:0",
-        #     fp16=False,
-        #     with_reid=True,
-        # ),
-        # # det thresh is like high thresh, default in BoTSORT to 0.5
-        # HybridSORT(
-        #     reid_weights="resnet50",
-        #     device="cuda:0",
-        #     half=False,
-        #     det_thresh=0.5,
-        # ),
-        # StrongSORT(
-        #     model_weights="resnet50",
-        #     device="cuda:0",
-        #     fp16=False,
-        # ),
     ]
-    trackers_list = [BBoxTracker(trker) for trker in track_methods_list]
+
+    reid_model_names = [
+        # "clip_vehicleid.pt",  # latest clip model
+        # "resnet50_msmt17.pt",  # classic ReID model
+        "osnet_x1_0_msmt17.pt",  # Same-domain ReID best perf
+        "osnet_ain_x1_0_msmt17.pt",  # Multi-source domain generalization best perf
+        "lmbn_n_duke.pt",
+        "osnet_x0_25_msmt17.pt",
+    ]
+    for reid_model_name in reid_model_names:
+        trackers_list.extend(
+            [
+                # trackers with reid
+                BBoxTracker(
+                    BoTSORT(
+                        model_weights=Path(reid_model_name),
+                        device="cuda:0",
+                        fp16=False,
+                        with_reid=True,
+                    ),
+                    reid_model_name=reid_model_name,
+                ),
+                BBoxTracker(
+                    HybridSORT(
+                        reid_weights=Path(reid_model_name),
+                        device="cuda:0",
+                        half=False,
+                        det_thresh=0.5,
+                    ),
+                    reid_model_name=reid_model_name,
+                ),
+                BBoxTracker(
+                    StrongSORT(
+                        model_weights=Path(reid_model_name),
+                        device="cuda:0",
+                        fp16=False,
+                    ),
+                    reid_model_name=reid_model_name,
+                ),
+            ]
+        )
 
     for tracker in trackers_list:
         track_dets_with_tracker(
