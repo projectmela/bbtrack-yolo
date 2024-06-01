@@ -137,11 +137,19 @@ if __name__ == "__main__":
     # TODO: DEBUG: only keep 0176.seg_1
     # dets_paths = [p for p in dets_paths if "0176.seg_1" in p.parent.name]
 
-    trackers_list = [
-        # trackers without reid
-        BBoxTracker(BYTETracker()),
-        BBoxTracker(OCSORT()),
-        BBoxTracker(
+    reid_model_names = [
+        # "clip_vehicleid.pt",  # latest clip model
+        # "resnet50_msmt17.pt",  # classic ReID model
+        "osnet_x1_0_msmt17.pt",  # Same-domain ReID best perf
+        "osnet_ain_x1_0_msmt17.pt",  # Multi-source domain generalization best perf
+        "lmbn_n_duke.pt",
+        "osnet_x0_25_msmt17.pt",
+    ]
+
+    get_tracker_list = [
+        lambda: BBoxTracker(BYTETracker()),
+        lambda: BBoxTracker(OCSORT()),
+        lambda: BBoxTracker(
             BoTSORT(
                 model_weights=None,
                 device="cpu",
@@ -151,19 +159,10 @@ if __name__ == "__main__":
         ),
     ]
 
-    reid_model_names = [
-        # "clip_vehicleid.pt",  # latest clip model
-        # "resnet50_msmt17.pt",  # classic ReID model
-        "osnet_x1_0_msmt17.pt",  # Same-domain ReID best perf
-        "osnet_ain_x1_0_msmt17.pt",  # Multi-source domain generalization best perf
-        "lmbn_n_duke.pt",
-        "osnet_x0_25_msmt17.pt",
-    ]
     for reid_model_name in reid_model_names:
-        trackers_list.extend(
+        get_tracker_list.extend(
             [
-                # trackers with reid
-                BBoxTracker(
+                lambda: BBoxTracker(
                     BoTSORT(
                         model_weights=Path(reid_model_name),
                         device="cuda:0",
@@ -172,7 +171,7 @@ if __name__ == "__main__":
                     ),
                     reid_model_name=reid_model_name,
                 ),
-                BBoxTracker(
+                lambda: BBoxTracker(
                     HybridSORT(
                         reid_weights=Path(reid_model_name),
                         device="cuda:0",
@@ -181,20 +180,20 @@ if __name__ == "__main__":
                     ),
                     reid_model_name=reid_model_name,
                 ),
-                BBoxTracker(
-                    StrongSORT(
-                        model_weights=Path(reid_model_name),
-                        device="cuda:0",
-                        fp16=False,
-                    ),
-                    reid_model_name=reid_model_name,
-                ),
+                # lambda: BBoxTracker(
+                #     StrongSORT(
+                #         model_weights=Path(reid_model_name),
+                #         device="cuda:0",
+                #         fp16=False,
+                #     ),
+                #     reid_model_name=reid_model_name,
+                # ),
             ]
         )
 
-    for tracker in trackers_list:
+    for get_tracker in get_tracker_list:
         track_dets_with_tracker(
-            tracker=tracker,
+            tracker=get_tracker(),
             dets_paths=dets_paths,
             trackers_split_dir=trackers_split_dir,
             progress_bar=True,
@@ -202,7 +201,7 @@ if __name__ == "__main__":
             overwrite=False,
         )
 
-    tracker_names = [str(trker) for trker in trackers_list]
+    tracker_names = [str(get_tracker()) for get_tracker in get_tracker_list]
     logger.info(f"Evaluating trackers: {tracker_names}")
     evaluate_trackers_with_trackeval(
         split=split,
