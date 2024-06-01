@@ -118,10 +118,10 @@ class BBoxDetection:
             return BBoxDetection(self._df[self._df["frame"].eq(key)])
 
     def filter_invalid_boxes(self):
-        """remove boxes that have width or height less than or equal 0.6
+        """remove boxes that have width or height less than or equal 1
         (which is croppable in ReID phase)"""
         self._df = self._df[
-            ((self._df["bb_width"] > 0.6) & (self._df["bb_height"] > 0.6))
+            ((self._df["bb_width"] >= 1) & (self._df["bb_height"] >= 1))
         ].copy()
         return self
 

@@ -56,7 +56,7 @@ def track_dets_with_tracker(
         seq_name = dets_path.parent.name[len("YYYYMMDD-HHMMSS_") :]
         # Load detections
         dets = BBoxDetection.load_from(dets_path)
-        # Remove boxes that have width or height less than 0
+        # Remove boxes that have width or height less than 1
         dets = dets.filter_invalid_boxes()
 
         # Setup save path
