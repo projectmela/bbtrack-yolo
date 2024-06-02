@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
 from boxmot import BYTETracker, OCSORT, StrongSORT, HybridSORT, BoTSORT
+import torch
 from loguru import logger
 from tqdm.auto import tqdm
 from tqdm.contrib.concurrent import process_map
@@ -73,8 +74,16 @@ def track_dets_with_tracker(
         if verbose:
             tqdm.write(f"{tracker_name} tracking {seq_name}")
 
+        video_path = None
+        if tracker.reid_model_name:
+            video_name = dets_path.parent.name[len("YYYYMMDD-HHMMSS_"):]
+            video_path = (
+                dets_path.parent.parent.parent.parent / f"videos/{video_name}.MP4"
+            )
+            if not video_path.exists():
+                raise FileNotFoundError(f"Video file not found: {video_path}")
         # Track detections
-        trks = tracker.track(dets, progress_bar=progress_bar)
+        trks = tracker.track(dets, progress_bar=progress_bar, video_path=video_path)
 
         # Save to prediction folder
         # trks.save_to(
@@ -134,9 +143,6 @@ if __name__ == "__main__":
     print(f"Found {len(dets_paths)} detection files")
     print("\n".join(map(str, dets_paths)))
 
-    # TODO: DEBUG: only keep 0176.seg_1
-    # dets_paths = [p for p in dets_paths if "0176.seg_1" in p.parent.name]
-
     reid_model_names = [
         # "clip_vehicleid.pt",  # latest clip model
         # "resnet50_msmt17.pt",  # classic ReID model
@@ -159,22 +165,33 @@ if __name__ == "__main__":
         ),
     ]
 
+
+    def get_device():
+        """Automatically select device for torch based on environment / hardware"""
+        if torch.cuda.is_available():
+            return "cuda:0"
+        elif torch.backends.mps.is_available():
+            return "mps"
+        else:
+            # Default fallback to CPU
+            return "cpu"
+
     for reid_model_name in reid_model_names:
         get_tracker_list.extend(
             [
-                lambda: BBoxTracker(
+                lambda reid_model_name=reid_model_name: BBoxTracker(
                     BoTSORT(
                         model_weights=Path(reid_model_name),
-                        device="cuda:0",
+                        device=get_device(),
                         fp16=False,
                         with_reid=True,
                     ),
                     reid_model_name=reid_model_name,
                 ),
-                lambda: BBoxTracker(
+                lambda reid_model_name=reid_model_name: BBoxTracker(
                     HybridSORT(
                         reid_weights=Path(reid_model_name),
-                        device="cuda:0",
+                        device=get_device(),
                         half=False,
                         det_thresh=0.5,
                     ),
@@ -191,6 +208,10 @@ if __name__ == "__main__":
             ]
         )
 
+    tracker_names = [str(get_tracker()) for get_tracker in get_tracker_list]
+    print(f"Tracking with following trackers:")
+    print("\n".join(tracker_names))
+
     for get_tracker in get_tracker_list:
         track_dets_with_tracker(
             tracker=get_tracker(),
@@ -201,7 +222,6 @@ if __name__ == "__main__":
             overwrite=False,
         )
 
-    tracker_names = [str(get_tracker()) for get_tracker in get_tracker_list]
     logger.info(f"Evaluating trackers: {tracker_names}")
     evaluate_trackers_with_trackeval(
         split=split,
