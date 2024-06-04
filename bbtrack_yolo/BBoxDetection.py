@@ -29,7 +29,7 @@ class BBoxDetectionSchema(pa.DataFrameModel):
     bb_height: pat.Series = pa.Field(ge=-500, coerce=True)
     confidence: pat.Series[float] = pa.Field(ge=0, le=1, coerce=True)
     track_id: pat.Series[int] = pa.Field(ge=-1, coerce=True)
-    class_id: pat.Series[int] = pa.Field(ge=0, coerce=True)
+    class_id: pat.Series[int] = pa.Field(ge=-1, coerce=True)
     class_name: pat.Series[str] = pa.Field(nullable=True)
 
 
@@ -212,7 +212,7 @@ class BBoxDetection:
 
     @staticmethod
     def load_from_mot17(
-        file_path: Union[Path, str], class_id: int = -1, class_name: str = "object"
+        file_path: Union[Path, str], class_id: int = -1, class_name: str = ""
     ) -> "BBoxDetection":
         """load from MOT17 format txt file"""
 
@@ -262,9 +262,11 @@ class BBoxDetection:
         # add class_id and class_name
         df["class_id"] = class_id
         df["class_name"] = class_name
+        df["file_path"] = file_path.resolve().as_posix()
 
-        df = df.loc[
+        df = df[
             [
+                "file_path",
                 "frame",
                 "bb_left",
                 "bb_top",
