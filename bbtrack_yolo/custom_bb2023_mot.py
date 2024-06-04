@@ -1,10 +1,11 @@
 """Custom configuration for the evaluation of the BB2023 dataset using TrackEval"""
 
-import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+import numpy as np
+import pandas as pd
 import trackeval  # type: ignore
 from trackeval.datasets import MotChallenge2DBox  # type: ignore
 
@@ -71,7 +72,7 @@ class CustomBB2023MOT(MotChallenge2DBox):
     def evaluate(
         self,
         save_dir: Optional[Union[str, Path]] = "eval_result",
-    ) -> Dict[str, Dict[str, Any]]:
+    ) -> pd.DataFrame:
         """
         Evaluate the tracker performance on the dataset and return the results.
 
@@ -105,25 +106,57 @@ class CustomBB2023MOT(MotChallenge2DBox):
         # hard coding for class name and dataset type
         cls = "pedestrian"
         dataset_type = dataset_list[0].get_name()
-        # reformat results: res[tracker_name][seq_name][metric_name]
-        new_res: Dict[str, Dict[str, Any]] = {}
-        metric_names = trackeval.utils.validate_metrics_list(metrics_list)
-        for tracker_name, _ in res[dataset_type].items():
-            new_res[tracker_name] = {}
-            for metric, metric_name in zip(metrics_list, metric_names):
-                table_res = {}
-                for seq_name, eval in res[dataset_type][tracker_name].items():
-                    table_res[seq_name] = eval[cls][metric_name]
-                new_res[tracker_name][metric_name] = metric.summary_results(table_res)
+        # reformat results as dataframe
+        res_data_dict: List[Dict[str, Any]] = []
+        for tracker_name, tracker_res in res[dataset_type].items():
+            for seq_name, seq_res in tracker_res.items():
+                for metric_group_name, metric_group_res in seq_res[cls].items():
+                    for metric_name, metric_val in metric_group_res.items():
+                        if metric_group_name == "HOTA" and "(0)" not in metric_name:
+                            # add HOTA metrics with different alpha values individually
+                            alpha_range = range(5, 100, 5)
+                            for alpha, val in zip(alpha_range, metric_val):
+                                res_data_dict.append(
+                                    {
+                                        "tracker": tracker_name,
+                                        "seq": seq_name,
+                                        "metric_group": metric_group_name,
+                                        "metric": f"{metric_name}_{alpha:02}",
+                                        "value": val,
+                                    }
+                                )
+                            # add the average sum of HOTA metrics
+                            res_data_dict.append(
+                                {
+                                    "tracker": tracker_name,
+                                    "seq": seq_name,
+                                    "metric_group": metric_group_name,
+                                    "metric": f"{metric_name}",
+                                    "value": np.mean(metric_val),
+                                }
+                            )
+                        elif "(0)" in metric_name:
+                            continue
+                        else:
+                            res_data_dict.append(
+                                {
+                                    "tracker": tracker_name,
+                                    "seq": seq_name,
+                                    "metric_group": metric_group_name,
+                                    "metric": metric_name,
+                                    "value": metric_val,
+                                }
+                            )
+        res_data_df = pd.DataFrame(res_data_dict)
 
         if save_dir is not None:
             save_dir = Path(save_dir)
             save_dir.mkdir(exist_ok=True)
-            save_file = save_dir / f"{cur_dt_str()}.json"
-            with open(save_file, "w") as f:
-                json.dump(new_res, f, indent=2)
+            save_file = save_dir / f"{cur_dt_str()}"
+            res_data_df.to_csv(save_file.with_suffix(".csv"), index=False)
+            res_data_df.to_parquet(save_file.with_suffix(".parquet"), index=False)
 
-        return new_res
+        return res_data_df
 
     def set_eval_config(self, eval_config: Dict[str, Any]):
         """Set the evaluation configuration with specified values"""
