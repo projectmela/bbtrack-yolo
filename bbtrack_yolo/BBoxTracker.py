@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import pandas as pd
 from boxmot import BYTETracker, OCSORT, BoTSORT, HybridSORT, StrongSORT
-from tqdm.auto import trange
+from tqdm.auto import trange, tqdm
 
 from bbtrack_yolo.BBoxDetection import BBoxDetection
 
@@ -101,8 +101,9 @@ class BBoxTracker:
                         )
                     # Update tracker and get tracks with dets: (x, y, x, y, conf, cls)
                     tracks = self._tracker.update(
+                        # TODO: raise error in PerClassDecorator if name the args
                         dets,
-                        img=img,
+                        img,
                     )  # => (n, 8) as (x, y, x, y, id, conf, cls, ind)
                 else:
                     # Update tracker and get tracks with dets: (x, y, x, y, conf, cls)
@@ -110,7 +111,6 @@ class BBoxTracker:
                         dets,
                     )  # => (n, 8) as (x, y, x, y, id, conf, cls, ind)
             except Exception as e:
-                print(f"Error at frame {frame_idx}: {e}")
                 # convert dets to df
                 df = pd.DataFrame(
                     dets,
@@ -123,7 +123,7 @@ class BBoxTracker:
                         "class_id",
                     ],
                 )
-                print(f"\n{df.to_markdown()}\n")
+                tqdm.write(f"Error at frame {frame_idx}: {e}\n\n{df.to_markdown()}\n")
                 raise e
 
             if tracks.size == 0:
