@@ -40,25 +40,25 @@ parser.add_argument(
     "-m",
     "--model",
     type=str,
-    default="yolov8m.pt",
+    default="./gd_s_m5472_best.pt",
     help="Model.pt path(s) or pretrained model name",
 )
 parser.add_argument(
     "-d",
     "--dataset",
     type=str,
-    default="/abyss/home/localcode/labelbox-handler/yolov8_labels/mc_dtc2023/mc_dtc2023.yaml",
+    default="datasets/20240619-155823-gd_s_h/data.yaml",
     help="dataset.yaml path",
 )
 parser.add_argument(
     "--image_size", type=int, default=5472, help="image size for training"
 )
-parser.add_argument("--batch_size", type=int, default=-1, help="batch size")
+parser.add_argument("--batch_size", type=int, default=1, help="batch size")
 parser.add_argument("-e", "--epochs", type=int, default=5000, help="number of epochs")
 parser.add_argument(
     "--workers",
     type=int,
-    default=8,
+    default=4,
     help="number of workers for dataloader, default to 8",
 )
 parser.add_argument(
