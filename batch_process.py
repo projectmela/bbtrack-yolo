@@ -84,7 +84,6 @@ def clean_up(dir):
 
 def main():
 
-
     # Prepare program
     parser = argparse.ArgumentParser(description="Print an argument")
     args = argument_parser(parser)
