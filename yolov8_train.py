@@ -64,6 +64,7 @@ parser.add_argument(
 parser.add_argument(
     "--patience", type=int, default=1000, help="early stopping patience"
 )
+parser.add_argument("--resume", action="store_true", help="resume training")
 
 args = parser.parse_args()
 print(args_in_lines(args))
@@ -74,6 +75,7 @@ epochs = args.epochs
 workers = args.workers
 base_model = args.model
 patience = args.patience
+resume = args.resume
 
 # if mps is available, indicate running on mac and no cuda available, use mps
 device = "mps" if torch.backends.mps.is_available() else "0"
@@ -110,6 +112,8 @@ model.train(
     # save to project/name
     project="models",
     name=model_name,
+    # resume training
+    resume=resume,
 )
 
 # run validation once
