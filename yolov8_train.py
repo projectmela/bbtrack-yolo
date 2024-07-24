@@ -7,19 +7,22 @@ import yaml
 
 from utility import cur_dt_str, args_in_lines
 
-COMET_API_KEY = os.getenv("COMET_API_KEY")
-COMET_PROJECT_NAME = os.getenv("COMET_PROJECT_NAME")
-COMET_WORKSPACE = os.getenv("COMET_WORKSPACE")
+# Try to use comet_ml to log model training, which has to be done before load PyTorch
 try:
     import comet_ml
     from comet_ml import Experiment
+
+    # If environment variables are not set, you can set them here
+    COMET_API_KEY = os.getenv("COMET_API_KEY")
+    COMET_PROJECT_NAME = os.getenv("COMET_PROJECT_NAME")
+    COMET_WORKSPACE = os.getenv("COMET_WORKSPACE")
 
     experiment = Experiment(
         api_key=COMET_API_KEY,
         project_name=COMET_PROJECT_NAME,
         workspace=COMET_WORKSPACE,
     )
-    # add date as tag
+    # Add date as tag
     experiment.add_tag(f'train_{cur_dt_str().split("-", 1)[0]}')
 except ImportError:
     print("comet_ml not installed, model training not logged.")
