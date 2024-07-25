@@ -13,7 +13,7 @@ tracker = BBoxTracker(tracker=OCSORT())
 trks = tracker.track(all_dets)
 
 # save tracks
-# trks.save_to("predictions/tracks_190_5s.csv")
+trks.save_to("predictions/tracks_190_5s.csv")
 
 # plot predictions on video
 trks.plot_on("videos/0190_5s.mp4")

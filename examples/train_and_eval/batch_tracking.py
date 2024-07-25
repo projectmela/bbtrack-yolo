@@ -156,9 +156,9 @@ def evaluate_trackers_with_trackeval(
     eval_config = CustomBB2023MOT.get_default_eval_config()
     eval_config.update(
         {
-            "USE_PARALLEL": False,
+            "USE_PARALLEL": True,
             "PRINT_RESULTS": True,
-            "PRINT_ONLY_COMBINED": False,
+            "PRINT_ONLY_COMBINED": True,
             "PRINT_CONFIG": True,
         }
     )
