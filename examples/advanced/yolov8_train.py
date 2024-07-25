@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from utility import cur_dt_str, args_in_lines
+from bbtrack_yolo.util import cur_dt_str, args_in_lines
 
 # Try to use comet_ml to log model training, which has to be done before load PyTorch
 try:

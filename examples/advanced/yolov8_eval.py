@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 from ultralytics import YOLO
 
-from utility import cur_dt_str
+from bbtrack_yolo.util import cur_dt_str
 
 model_paths = [
     # /scratch/cs/css-llm/jonathan/localcode/bb-yolo/models/models_202311122_gd
