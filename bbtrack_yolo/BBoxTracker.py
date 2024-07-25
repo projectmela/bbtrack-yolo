@@ -26,14 +26,18 @@ class BBoxTracker:
 
         self._tracker = tracker
         self.reid_model_name = reid_model_name
+        # Make a dummy image for trackers that require image input (3078, 5472, 3)
+        self._dummy_img = np.zeros((3078, 5472, 3), dtype=np.uint8)
 
     def __str__(self):
         tracker_cls_name = self._tracker.__class__.__name__
         if tracker_cls_name == "BYTETracker":
             tracker_name = "BYTE"
             return tracker_name
-        elif tracker_cls_name == "OCSORT":
+        elif tracker_cls_name == "OCSort":
             tracker_name = "OCST"
+            tracker_name += f"_detth={self._tracker.det_thresh}"
+            tracker_name += f"_assth={self._tracker.asso_threshold}"
             return tracker_name
         elif tracker_cls_name == "BoTSORT":
             tracker_name = "BoTST"
@@ -109,6 +113,7 @@ class BBoxTracker:
                     # Update tracker and get tracks with dets: (x, y, x, y, conf, cls)
                     tracks = self._tracker.update(
                         dets,
+                        self._dummy_img,
                     )  # => (n, 8) as (x, y, x, y, id, conf, cls, ind)
             except Exception as e:
                 # convert dets to df
@@ -122,8 +127,10 @@ class BBoxTracker:
                         "confidence",
                         "class_id",
                     ],
-                )
-                tqdm.write(f"Error at frame {frame_idx}: {e}\n\n{df.to_markdown()}\n")
+                ).head(5)
+                tqdm.write(f"Error at frame {frame_idx}: {e}\n"
+                           f"Top 5 rows:\n"
+                           f"\n{df.to_markdown()}\n")
                 raise e
 
             if tracks.size == 0:
