@@ -110,43 +110,24 @@ class CustomBB2023MOT(MotChallenge2DBox):
         res_data_dict: List[Dict[str, Any]] = []
         for tracker_name, tracker_res in res[dataset_type].items():
             for seq_name, seq_res in tracker_res.items():
+                row_data = {
+                    "tracker": tracker_name,
+                    "seq": seq_name,
+                }
                 for metric_group_name, metric_group_res in seq_res[cls].items():
                     for metric_name, metric_val in metric_group_res.items():
                         if metric_group_name == "HOTA" and "(0)" not in metric_name:
                             # add HOTA metrics with different alpha values individually
                             alpha_range = range(5, 100, 5)
                             for alpha, val in zip(alpha_range, metric_val):
-                                res_data_dict.append(
-                                    {
-                                        "tracker": tracker_name,
-                                        "seq": seq_name,
-                                        "metric_group": metric_group_name,
-                                        "metric": f"{metric_name}_{alpha:02}",
-                                        "value": val,
-                                    }
-                                )
+                                row_data[f"{metric_name}_{alpha:02}"] = val
                             # add the average sum of HOTA metrics
-                            res_data_dict.append(
-                                {
-                                    "tracker": tracker_name,
-                                    "seq": seq_name,
-                                    "metric_group": metric_group_name,
-                                    "metric": f"{metric_name}",
-                                    "value": np.mean(metric_val),
-                                }
-                            )
+                            row_data[f"{metric_name}"] = np.mean(metric_val)
                         elif "(0)" in metric_name:
                             continue
                         else:
-                            res_data_dict.append(
-                                {
-                                    "tracker": tracker_name,
-                                    "seq": seq_name,
-                                    "metric_group": metric_group_name,
-                                    "metric": metric_name,
-                                    "value": metric_val,
-                                }
-                            )
+                            row_data[f"{metric_name}"] = metric_val
+                res_data_dict.append(row_data)
         res_data_df = pd.DataFrame(res_data_dict)
 
         if save_dir is not None:
