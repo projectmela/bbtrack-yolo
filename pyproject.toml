@@ -18,7 +18,6 @@ loguru = "*"
 tensorboard = "*"
 comet-ml = "*"
 pyarrow = "*"
-labelbox = { extras = ["data"], version = "*" }
 lapx = "*"
 pandera = "*"
 pydantic = "*"
