@@ -1,3 +1,5 @@
+""" Evaluate a model on a dataset and print out evaluation results. """
+
 from ultralytics import YOLO
 
 from bbtrack_yolo.util import cur_dt_str
