@@ -1,0 +1,8 @@
+names:
+  0: bbfemale
+  1: bbmale
+nc: 2
+path: /Users/jonyair/localcode/proj_bbtrack/bb-yolo/examples/basics/datasets/gd_toy
+test: test/images
+train: train/images
+val: val/images

@@ -1,6 +1,0 @@
-pytest
-mypy
-isort
-black
-pandas-stubs
-types-tqdm
