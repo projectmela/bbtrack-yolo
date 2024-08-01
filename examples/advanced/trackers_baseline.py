@@ -16,7 +16,7 @@ from tqdm.contrib.concurrent import process_map
 from bbtrack_yolo.BBoxDetection import BBoxDetection
 from bbtrack_yolo.BBoxTracker import TrackerType, BBoxTracker
 from bbtrack_yolo.util import get_default_tqdm_args
-from examples.train.batch_tracking import evaluate_trackers_with_trackeval
+from batch_tracking import evaluate_trackers_with_trackeval
 
 
 def track_dets_with_tracker(
