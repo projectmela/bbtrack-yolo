@@ -124,6 +124,7 @@ if __name__ == "__main__":
 
     split = "full"  # TrackEval package requires a split name to be specified
     trackers_split_dir = Path(f"trackeval/trackers/BB2023/BB2023-{split}")
+    trackers_split_dir.mkdir(parents=True, exist_ok=True)
     # all tracker result must be saved in this folder as:
     # trackers_split_dir / tracker_name / {seq_name}.txt
 
