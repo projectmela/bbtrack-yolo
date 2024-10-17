@@ -2,13 +2,24 @@ import argparse
 import functools
 from pathlib import Path
 from typing import List
-
+import torch
 from tqdm.contrib.concurrent import process_map
 
 from bbtrack_yolo.BBDetecor import BBDetector, BBDetectorConfig
-from bbtrack_yolo.BBTracker import BBTracker, BYTETrackerConfig
+from bbtrack_yolo.BBTracker import BBTracker, BYTETrackerConfig, BotSortTrackerConfig
 from bbtrack_yolo.BBoxDetection import BBoxDetection
+from bbtrack_yolo.BBoxTracker import BoTSORT, BBoxTracker
 
+# Get device information from the computer about GPU, CPU etc. 
+def get_device():
+    """Automatically select device for torch based on environment / hardware"""
+    if torch.cuda.is_available():
+        return "cuda:0"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    else:
+        # Default fallback to CPU
+        return "cpu"
 
 def track_dets_with_config(config: BYTETrackerConfig, dets_file: Path):
     """Track detections from a file path with given parameters"""
@@ -30,13 +41,19 @@ def parallel_track_dets_with_config(
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--video_dir", type=str, default="videos")
-parser.add_argument("--model_path", type=str, default="nano_bb.pt")
+parser.add_argument("--video_dir", type=str, default="examples/basics/videos")
+parser.add_argument("--model_path", type=str, default="examples/basics/nano_bb.pt")
+# TO allow for multi-threading 
+parser.add_argument("--thread", type=bool, default=False)
+
 if __name__ == "__main__":
     args = parser.parse_args()
     video_dir = Path(args.video_dir)
     model_path = Path(args.model_path)
     video_paths = list(video_dir.glob("*.[mM][pP]4"))
+
+    print("Video Path : ", video_dir)
+    print("Model Path : ", model_path)
 
     # print video files info
     print("Found video files:")
@@ -59,7 +76,33 @@ if __name__ == "__main__":
         dets, dets_path = detector.detect(vp)
         dets_files.append(dets_path)
 
-    # parallel tracking
-    parallel_track_dets_with_config(
-        config=BYTETrackerConfig(), dets_files=dets_files, n_proc=4
-    )
+    if (args.thread):
+        # parallel tracking
+        parallel_track_dets_with_config(
+            config=BYTETrackerConfig(), dets_files=dets_files, n_proc=4
+        )
+    else:            
+        # Singular tracking function 
+        tracker = BBoxTracker(
+            BoTSORT(
+                model_weights= Path("osnet_ain_x1_0_msmt17.pt"), #"osnet_x0_25_msmt17.pt", #"resnet50_msmt17",
+                # more re-id models see:
+                # https://kaiyangzhou.github.io/deep-person-reid/MODEL_ZOO.html
+                device=get_device(),
+                fp16=False,
+                with_reid=True,
+            ),
+            reid_model_name= "osnet_ain_x1_0_msmt17.pt",
+        )
+
+        # load files for tracking 
+        for file in dets_files:
+            dets = BBoxDetection.load_from(file)
+
+                    # track detections
+            trks = tracker.track(dets)
+
+            # save tracks
+            trks.save_to(file.parent / "tracks.csv")
+            
+    print("All files processed")

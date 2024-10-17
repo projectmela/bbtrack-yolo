@@ -23,6 +23,7 @@ all_dets = BBoxDetection.load_from("examples/basics/predictions/detection.csv")
 #all_dets = BBoxDetection.load_from("predictions/detection_190_5s.parquet")
 
 # initialize tracker
+
 # tracker = BBoxTracker(tracker=OCSORT())
 # BBoxTracker(BYTETracker())
 # BBoxTracker(
@@ -33,16 +34,6 @@ all_dets = BBoxDetection.load_from("examples/basics/predictions/detection.csv")
 #         with_reid=False,
 #     ),
 # # )
-# tracker = BBoxTracker(
-#     BoTSORT(
-#         model_weights="resnet50_msmt17",
-#         # more re-id models see:
-#         # https://kaiyangzhou.github.io/deep-person-reid/MODEL_ZOO.html
-#         device=get_device(),
-#         fp16=False,
-#         with_reid=False,
-#     ),
-#  )
 
 tracker = BBoxTracker(
     BoTSORT(
