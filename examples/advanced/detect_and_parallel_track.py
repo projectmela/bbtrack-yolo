@@ -96,11 +96,14 @@ if __name__ == "__main__":
         )
 
         # load files for tracking 
-        for file in dets_files:
+        for file, video in zip(dets_files,video_paths) :
+            
+            # load detections 
             dets = BBoxDetection.load_from(file)
-
-                    # track detections
-            trks = tracker.track(dets)
+            
+            # track detections
+            print("Detection:", dets, " - Video path:",video)
+            trks = tracker.track(dets, video_path= video)
 
             # save tracks
             trks.save_to(file.parent / "tracks.csv")
