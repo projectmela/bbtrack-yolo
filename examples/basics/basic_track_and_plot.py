@@ -18,22 +18,32 @@ def get_device():
 
 
 # load detections
-all_dets = BBoxDetection.load_from("examples/basics/predictions/detection.csv")
+all_dets = BBoxDetection.load_from("examples/basics/predictions/detection_190_5s.parquet")
 
-#all_dets = BBoxDetection.load_from("predictions/detection_190_5s.parquet")
+# video path, if re_id is given video must be provided 
+video_path = "examples/basics/videos/0190_5s.mp4"
+
+# FOR Custom videos 
+# all_dets = BBoxDetection.load_from("PATH/TO/DETECTION_FILE.parquet/.csv")
+# video_path = "PATH/TO/VIDEO.MP4"
 
 # initialize tracker
 
+# Example 1 : OC Sort
 # tracker = BBoxTracker(tracker=OCSORT())
-# BBoxTracker(BYTETracker())
-# BBoxTracker(
-#     BoTSORT(
-#         model_weights=None,
-#         device=get_device(),
-#         fp16=False,
-#         with_reid=False,
-#     ),
-# # )
+
+# Example 2 : Byte tracker 
+# tracker = BBoxTracker(BYTETracker())
+
+# Example 3 : BotSort without any specific weight, without Re-ID
+# tracker = BBoxTracker(
+    #     BoTSORT(
+    #         model_weights=None,
+    #         device=get_device(),
+    #         fp16=False,
+    #         with_reid=False,
+    #     ),
+# #     )
 
 tracker = BBoxTracker(
     BoTSORT(
@@ -47,14 +57,13 @@ tracker = BBoxTracker(
     reid_model_name= "osnet_ain_x1_0_msmt17.pt",
  )
 
-
-# track detections
-trks = tracker.track(all_dets)
+# run tracking for detections
+trks = tracker.track(all_dets, video_path= video_path)
 
 # save tracks
-trks.save_to("examples/basics/predictions/20230313_SE_Lek1_P1D1_DJI_0295.csv")
+#trks.save_to("PATH/TO/CUSTOM_NAME.csv")
+trks.save_to("examples/basics/predictions/track_190_5s.csv")
 
 # plot predictions on video
-# trks.plot_on("/home/hnaik/mela_yolo/bbtrack-yolo/dataset/test/20230313_SE_Lek1_P1D1_DJI_0295.MP4")
-
-#trks.plot_on("examples/basics/videos/0190_5s.mp4")
+# trks.plot_on("PATH/TO/TARGET_VIDEO_FILE.MP4") or define above 
+trks.plot_on(video_path)
